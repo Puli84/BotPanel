@@ -63,6 +63,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/webhook/**").permitAll()
+                .requestMatchers("/api/archivos/**").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authProvider())

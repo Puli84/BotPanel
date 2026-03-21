@@ -14,7 +14,6 @@ import com.botpanel.service.OpenAIService;
 import com.botpanel.service.TwilioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.twilio.twiml.MessagingResponse;
-import com.twilio.twiml.messaging.Message;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,54 +45,74 @@ public class WebhookController {
         this.twilioService = twilioService;
     }
 
+    // ── Webhook Twilio ─────────────────────────────────────────────
     @PostMapping(
-    	    value = "/whatsapp",
-    	    consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-    	    produces = MediaType.APPLICATION_XML_VALUE
-    	)
-    	public String recibirMensajeTwilio(
-    	        @RequestParam("From") String from,
-    	        @RequestParam("Body") String body,
-    	        @RequestParam(value = "To", required = false) String to) {
+        value = "/whatsapp",
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+        produces = MediaType.APPLICATION_XML_VALUE
+    )
+    public String recibirMensajeTwilio(
+            @RequestParam("From") String from,
+            @RequestParam("Body") String body,
+            @RequestParam(value = "To", required = false) String to) {
 
-    	    System.out.println("Twilio — de: " + from + " → " + body);
+        System.out.println("Twilio — de: " + from + " → " + body);
 
-    	    Bot bot = encontrarBot(to);
-    	    String contacto = from.replace("whatsapp:", "");
+        Bot bot = encontrarBot(to);
+        String contacto = from.replace("whatsapp:", "");
 
-    	    List<Map<String, String>> historial = obtenerHistorial(
-    	        contacto, bot != null ? bot.getEmpresa().getId() : null);
+        List<Map<String, String>> historial = obtenerHistorial(
+            contacto, bot != null ? bot.getEmpresa().getId() : null);
 
-    	    Map<String, Object> resultado = openAIService.responderYExtraerSolicitud(
-    	        bot != null ? bot.getContextoIA() : null, body, historial);
+        Map<String, Object> resultado = openAIService.responderYExtraerSolicitud(
+            bot != null ? bot.getContextoIA() : null, body, historial);
 
-    	    String respuestaCompleta = (String) resultado.get("mensaje");
-    	    System.out.println("Respuesta OpenAI: " + respuestaCompleta);
+        String respuestaCompleta = (String) resultado.get("mensaje");
+        System.out.println("Respuesta OpenAI: " + respuestaCompleta);
 
-    	    String imagenUrl = null;
-    	    String respuestaLimpia = respuestaCompleta;
+        // ── Detecta ##IMAGEN## ──────────────────────────────────────
+        String imagenUrl = null;
+        String respuestaLimpia = respuestaCompleta;
 
-    	    if (respuestaCompleta != null && respuestaCompleta.contains("##IMAGEN##")) {
-    	        String[] partes = respuestaCompleta.split("##IMAGEN##");
-    	        respuestaLimpia = partes[0].trim();
-    	        if (partes.length > 1) {
-    	            imagenUrl = partes[1].replace("##", "").trim();
-    	        }
-    	    }
+        if (respuestaCompleta != null && respuestaCompleta.contains("##IMAGEN##")) {
+            String[] partes = respuestaCompleta.split("##IMAGEN##");
+            respuestaLimpia = partes[0].trim();
+            if (partes.length > 1)
+                imagenUrl = partes[1].replace("##", "").trim();
+        }
 
-    	    if (Boolean.TRUE.equals(resultado.get("tieneSolicitud")) && bot != null) {
-    	        guardarSolicitud((String) resultado.get("solicitudJson"), contacto, bot);
-    	    }
+        // ── Detecta ##ARCHIVO## ─────────────────────────────────────
+        String archivoUrl = null;
+        if (respuestaLimpia != null && respuestaLimpia.contains("##ARCHIVO##")) {
+            String[] partes = respuestaLimpia.split("##ARCHIVO##");
+            respuestaLimpia = partes[0].trim();
+            if (partes.length > 1)
+                archivoUrl = partes[1].replace("##", "").trim();
+        }
 
-    	    if (bot != null) guardarMensaje(contacto, body, respuestaLimpia, bot);
+        // Guarda solicitud si la hay
+        if (Boolean.TRUE.equals(resultado.get("tieneSolicitud")) && bot != null) {
+            guardarSolicitud((String) resultado.get("solicitudJson"), contacto, bot);
+        }
 
-    	    // Siempre enviamos con SDK directamente, nunca con TwiML
-    	    twilioService.enviarConImagen(contacto, respuestaLimpia, imagenUrl);
+        // Guarda mensaje en BD
+        if (bot != null) guardarMensaje(contacto, body, respuestaLimpia, bot);
 
-    	    // Devolvemos respuesta vacía a Twilio
-    	    return new MessagingResponse.Builder().build().toXml();
-    	}
+        // Envía con archivo, imagen o solo texto
+        if (archivoUrl != null) {
+            System.out.println("Enviando archivo: " + archivoUrl);
+            twilioService.enviarConImagen(contacto, respuestaLimpia, archivoUrl);
+        } else if (imagenUrl != null) {
+            System.out.println("Enviando imagen: " + imagenUrl);
+            twilioService.enviarConImagen(contacto, respuestaLimpia, imagenUrl);
+        } else {
+            twilioService.enviarConImagen(contacto, respuestaLimpia, null);
+        }
 
+        return new MessagingResponse.Builder().build().toXml();
+    }
+
+    // ── Webhook Baileys ────────────────────────────────────────────
     @PostMapping("/whatsapp-baileys")
     public Map<String, String> recibirMensajeBaileys(@RequestBody Map<String, String> payload) {
         String from = payload.get("from");
@@ -111,9 +130,13 @@ public class WebhookController {
 
         String respuestaCompleta = (String) resultado.get("mensaje");
 
+        // Limpia tags de imagen y archivo
         String respuestaLimpia = respuestaCompleta;
         if (respuestaCompleta != null && respuestaCompleta.contains("##IMAGEN##")) {
             respuestaLimpia = respuestaCompleta.split("##IMAGEN##")[0].trim();
+        }
+        if (respuestaLimpia != null && respuestaLimpia.contains("##ARCHIVO##")) {
+            respuestaLimpia = respuestaLimpia.split("##ARCHIVO##")[0].trim();
         }
 
         if (Boolean.TRUE.equals(resultado.get("tieneSolicitud")) && bot != null) {
@@ -125,24 +148,20 @@ public class WebhookController {
         return Map.of("respuesta", respuestaLimpia != null ? respuestaLimpia : "");
     }
 
+    // ── Busca el bot por número ────────────────────────────────────
     private Bot encontrarBot(String numeroDestino) {
         if (numeroDestino != null) {
             String numero = numeroDestino.replace("whatsapp:", "");
-            Bot botPorNumero = botRepository.findAll().stream()
+            return botRepository.findAll().stream()
                     .filter(b -> numero.equals(b.getNumeroWhatsapp()))
                     .findFirst().orElse(null);
-            if (botPorNumero != null) {
-                System.out.println("Bot encontrado por numero: " + botPorNumero.getNombre());
-                return botPorNumero;
-            }
         }
-        Bot botActivo = botRepository.findAll().stream()
+        return botRepository.findAll().stream()
                 .filter(b -> Boolean.TRUE.equals(b.getActivo()))
                 .findFirst().orElse(null);
-        System.out.println("Bot encontrado por activo: " + (botActivo != null ? botActivo.getNombre() : "NULL"));
-        return botActivo;
     }
 
+    // ── Historial de conversación ──────────────────────────────────
     private List<Map<String, String>> obtenerHistorial(String contacto, Long empresaId) {
         if (empresaId == null) return new ArrayList<>();
         return conversacionRepository.findByBotEmpresaId(empresaId)
@@ -161,6 +180,7 @@ public class WebhookController {
                 .orElse(new ArrayList<>());
     }
 
+    // ── Guarda solicitud ───────────────────────────────────────────
     private void guardarSolicitud(String jsonStr, String telefono, Bot bot) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -174,18 +194,18 @@ public class WebhookController {
             s.setBot(bot);
 
             Object datosExtra = datos.get("datos");
-            if (datosExtra != null) {
+            if (datosExtra != null)
                 s.setDatos(mapper.writeValueAsString(datosExtra));
-            }
 
             solicitudRepository.save(s);
-            System.out.println("Solicitud guardada: " + s.getNombre() + " -- " + s.getTipo());
+            System.out.println("✅ Solicitud guardada: " + s.getNombre() + " — " + s.getTipo());
 
         } catch (Exception e) {
-            System.err.println("Error guardando solicitud: " + e.getMessage());
+            System.err.println("❌ Error guardando solicitud: " + e.getMessage());
         }
     }
 
+    // ── Guarda mensajes en BD ──────────────────────────────────────
     private void guardarMensaje(String contacto, String textoCliente,
                                  String textoBot, Bot bot) {
         Optional<Conversacion> convExistente = conversacionRepository
