@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>BotPanel — Configurar Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #111827; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; padding: 24px 12px; }
+    .logo { font-size: 22px; font-weight: bold; padding: 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .logo span { color: #25d366; }
+    .nav-item { display: block; padding: 10px 12px; border-radius: 8px; color: #64748b; text-decoration: none; font-size: 14px; margin-bottom: 4px; }
+    .nav-item:hover { background: #1a2235; color: #e2e8f0; }
+    .nav-item.activo { background: rgba(37,211,102,0.1); color: #25d366; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; }
+    .usuario-info { font-size: 13px; padding: 0 8px 12px; }
+    .usuario-nombre { font-weight: bold; margin-bottom: 2px; }
+    .usuario-rol { font-size: 11px; color: #25d366; background: rgba(37,211,102,0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+    .btn-salir { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+
+    .contenido { margin-left: 220px; flex: 1; padding: 32px; max-width: 800px; }
+    .titulo-pagina { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+    .subtitulo-pagina { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+
+    .bot-selector { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .bot-btn { padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #111827; color: #64748b; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+    .bot-btn:hover { border-color: rgba(37,211,102,0.3); color: #e2e8f0; }
+    .bot-btn.seleccionado { background: rgba(37,211,102,0.1); border-color: #25d366; color: #25d366; }
+
+    .card { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card-titulo { font-size: 15px; font-weight: bold; margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: #64748b; margin-bottom: 16px; line-height: 1.6; }
+
+    label { display: block; font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 6px; margin-top: 16px; }
+    input, textarea { width: 100%; background: #1a2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; font-family: Arial; }
+    input:focus, textarea:focus { border-color: #25d366; }
+    textarea { resize: vertical; min-height: 160px; line-height: 1.6; }
+
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-verde { background: #25d366; color: #000; }
+    .btn-verde:hover { background: #1db954; }
+
+    .mensaje { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+    .mensaje.error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; display: block; }
+    .mensaje.exito { background: rgba(37,211,102,0.15); border: 1px solid rgba(37,211,102,0.3); color: #25d366; display: block; }
+
+    .ejemplo { background: #1a2235; border-left: 3px solid #25d366; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 13px; color: #94a3b8; line-height: 1.7; margin-top: 8px; }
+    .vacio { padding: 40px; text-align: center; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">Bot<span>Panel</span></div>
+    <a href="dashboard.html" class="nav-item">⚡ Dashboard</a>
+    <a href="bots.html"      class="nav-item">🤖 Bots</a>
+    <a href="config-bot.html" class="nav-item activo">⚙️ Configurar Bot</a>
+    <div class="sidebar-bottom">
+      <div class="usuario-info">
+        <div class="usuario-nombre" id="nombreUsuario">...</div>
+        <span class="usuario-rol" id="rolUsuario">...</span>
+      </div>
+      <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    <div class="titulo-pagina">⚙️ Configurar Bot con IA</div>
+    <div class="subtitulo-pagina">Define el comportamiento de tu bot — qué es, qué sabe y cómo habla</div>
+
+    <div id="selectorBots" class="bot-selector">
+      <div class="vacio">Cargando bots...</div>
+    </div>
+
+    <div id="formulario" style="display:none">
+
+      <div class="card">
+        <div class="card-titulo">🧠 Contexto del bot (System Prompt)</div>
+        <div class="card-desc">
+          Aquí defines la personalidad y conocimiento de tu bot. Escribe quién es,
+          qué puede hacer, cómo debe hablar y qué información tiene disponible.
+          Cuanto más detallado, mejor responderá.
+        </div>
+
+        <div class="ejemplo">
+          <strong>Ejemplo:</strong><br>
+          Eres el asistente virtual del Restaurante El Rincón, ubicado en la Calle Mayor 5, Madrid.<br>
+          Atiendes reservas de lunes a sábado de 13:00 a 23:00. El restaurante está cerrado los domingos.<br>
+          El menú del día cuesta 12€ e incluye primero, segundo y postre.<br>
+          Especialidad: cocina tradicional española.<br>
+          Para reservas necesitas: nombre, fecha, hora y número de personas.<br>
+          Sé amable, conciso y usa emojis con moderación.
+        </div>
+
+        <label>Contexto del bot</label>
+        <textarea id="contextoIA" placeholder="Escribe aquí el contexto de tu bot..."></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-titulo">👋 Mensaje de bienvenida</div>
+        <div class="card-desc">
+          Primer mensaje que envía el bot cuando alguien escribe por primera vez.
+        </div>
+        <label>Mensaje de bienvenida</label>
+        <input id="mensajeBienvenida" placeholder="Ej: ¡Hola! Bienvenido a nuestro servicio. ¿En qué puedo ayudarte?" />
+      </div>
+
+      <div class="card">
+        <div class="card-titulo">📋 Información del bot</div>
+        <label>Nombre del bot</label>
+        <input id="botNombre" placeholder="Nombre del bot" />
+        <label>Número de WhatsApp</label>
+        <input id="botNumero" placeholder="+34600123456" />
+      </div>
+
+      <button class="btn btn-verde" onclick="guardar()">💾 Guardar configuración</button>
+      <div class="mensaje" id="mensajeGuardar"></div>
+    </div>
+
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    let botSeleccionado = null
+    let bots = []
+
+    window.onload = async () => {
+      if (!verificarSesion()) return
+      const u = getUsuario()
+      document.getElementById('nombreUsuario').textContent = u.nombre
+      document.getElementById('rolUsuario').textContent    = u.rol
+      cargarBots()
+    }
+
+    async function cargarBots() {
+      const r = await apiFetch('/api/bots')
+      bots = await r.json()
+
+      if (bots.length === 0) {
+        document.getElementById('selectorBots').innerHTML =
+          '<div class="vacio">No tienes bots. <a href="bots.html" style="color:#25d366">Crea uno primero →</a></div>'
+        return
+      }
+
+      let html = ''
+      bots.forEach(b => {
+        html += `<button class="bot-btn" onclick="seleccionarBot(${b.id})" id="btn-${b.id}">
+          🤖 ${b.nombre}
+        </button>`
+      })
+      document.getElementById('selectorBots').innerHTML = html
+
+      // Selecciona el primero automáticamente
+      seleccionarBot(bots[0].id)
+    }
+
+    function seleccionarBot(id) {
+      botSeleccionado = bots.find(b => b.id === id)
+
+      // Marca el botón activo
+      document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('seleccionado'))
+      document.getElementById('btn-' + id).classList.add('seleccionado')
+
+      // Rellena el formulario con los datos del bot
+      document.getElementById('contextoIA').value        = botSeleccionado.contextoIA || ''
+      document.getElementById('mensajeBienvenida').value = botSeleccionado.mensajeBienvenida || ''
+      document.getElementById('botNombre').value         = botSeleccionado.nombre || ''
+      document.getElementById('botNumero').value         = botSeleccionado.numeroWhatsapp || ''
+
+      document.getElementById('formulario').style.display = 'block'
+    }
+
+    async function guardar() {
+      if (!botSeleccionado) return
+
+      const datos = {
+        nombre:            document.getElementById('botNombre').value,
+        numeroWhatsapp:    document.getElementById('botNumero').value,
+        mensajeBienvenida: document.getElementById('mensajeBienvenida').value,
+        contextoIA:        document.getElementById('contextoIA').value
+      }
+
+      const r = await apiFetch(`/api/bots/${botSeleccionado.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(datos)
+      })
+
+      if (r.ok) {
+        mostrarMensaje('✅ Configuración guardada correctamente', 'exito')
+        // Actualiza el bot en local
+        const idx = bots.findIndex(b => b.id === botSeleccionado.id)
+        bots[idx] = { ...bots[idx], ...datos }
+        botSeleccionado = bots[idx]
+      } else {
+        const err = await r.json()
+        mostrarMensaje(err.error || 'Error al guardar', 'error')
+      }
+    }
+
+    function mostrarMensaje(texto, tipo) {
+      const div = document.getElementById('mensajeGuardar')
+      div.textContent = texto
+      div.className = 'mensaje ' + tipo
+      setTimeout(() => div.className = 'mensaje', 3000)
+    }
+  </script>
+
+</body>
+</html>

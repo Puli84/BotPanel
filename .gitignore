@@ -1,0 +1,19 @@
+# Spring Boot — compilados
+botpanel2/target/
+botpanel2/.classpath
+botpanel2/.project
+botpanel2/.settings/
+
+# IMPORTANTE — credenciales y contraseñas
+botpanel2/src/main/resources/application.properties
+
+# Node.js
+baileys-bot/node_modules/
+baileys-bot/sesion/
+
+# VS Code
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

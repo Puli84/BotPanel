@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>BotPanel — Solicitudes</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #111827; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; padding: 24px 12px; }
+    .logo { font-size: 22px; font-weight: bold; padding: 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .logo span { color: #25d366; }
+    .nav-item { display: block; padding: 10px 12px; border-radius: 8px; color: #64748b; text-decoration: none; font-size: 14px; margin-bottom: 4px; }
+    .nav-item:hover { background: #1a2235; color: #e2e8f0; }
+    .nav-item.activo { background: rgba(37,211,102,0.1); color: #25d366; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; }
+    .usuario-info { font-size: 13px; padding: 0 8px 12px; }
+    .usuario-nombre { font-weight: bold; margin-bottom: 2px; }
+    .usuario-rol { font-size: 11px; color: #25d366; background: rgba(37,211,102,0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+    .btn-salir { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+
+    .contenido { margin-left: 220px; flex: 1; padding: 32px; }
+    .titulo-pagina { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+    .subtitulo-pagina { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+
+    .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 20px; }
+    .stat-valor { font-size: 36px; font-weight: bold; margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: #64748b; }
+
+    .card { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); font-weight: bold; font-size: 14px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 20px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .badge-tipo      { background: rgba(59,130,246,0.15);  color: #3b82f6; }
+    .badge-pendiente { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+    .badge-confirmada{ background: rgba(37,211,102,0.15);  color: #25d366; }
+    .badge-cancelada { background: rgba(239,68,68,0.15);   color: #ef4444; }
+
+    .datos-extra { font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.6; }
+
+    .btn { padding: 5px 10px; border-radius: 6px; border: none; font-size: 11px; font-weight: bold; cursor: pointer; margin-right: 4px; }
+    .btn-verde { background: #25d366; color: #000; }
+    .btn-rojo  { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .vacio { padding: 40px; text-align: center; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">Bot<span>Panel</span></div>
+    <a href="dashboard.html"    class="nav-item">⚡ Dashboard</a>
+    <a href="bots.html"         class="nav-item">🤖 Bots</a>
+    <a href="config-bot.html"   class="nav-item">⚙️ Configurar Bot</a>
+    <a href="metricas.html"     class="nav-item">📊 Métricas</a>
+    <a href="solicitudes.html"  class="nav-item activo">📋 Solicitudes</a>
+    <div class="sidebar-bottom">
+      <div class="usuario-info">
+        <div class="usuario-nombre" id="nombreUsuario">...</div>
+        <span class="usuario-rol" id="rolUsuario">...</span>
+      </div>
+      <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    <div class="titulo-pagina">📋 Solicitudes</div>
+    <div class="subtitulo-pagina">Citas, reservas y pedidos recibidos por WhatsApp</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-valor" style="color:#f59e0b" id="totalPendientes">-</div>
+        <div class="stat-label">⏳ Pendientes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-valor" style="color:#25d366" id="totalConfirmadas">-</div>
+        <div class="stat-label">✅ Confirmadas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-valor" style="color:#ef4444" id="totalCanceladas">-</div>
+        <div class="stat-label">❌ Canceladas</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📋 Lista de solicitudes</div>
+      <div id="tablaSolicitudes">
+        <div class="vacio">Cargando...</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    window.onload = async () => {
+      if (!verificarSesion()) return
+      const u = getUsuario()
+      document.getElementById('nombreUsuario').textContent = u.nombre
+      document.getElementById('rolUsuario').textContent    = u.rol
+      cargarSolicitudes()
+    }
+
+    async function cargarSolicitudes() {
+      const r = await apiFetch('/api/solicitudes')
+      const solicitudes = await r.json()
+
+      document.getElementById('totalPendientes').textContent  =
+        solicitudes.filter(s => s.estado === 'PENDIENTE').length
+      document.getElementById('totalConfirmadas').textContent =
+        solicitudes.filter(s => s.estado === 'CONFIRMADA').length
+      document.getElementById('totalCanceladas').textContent  =
+        solicitudes.filter(s => s.estado === 'CANCELADA').length
+
+      if (solicitudes.length === 0) {
+        document.getElementById('tablaSolicitudes').innerHTML =
+          '<div class="vacio">No hay solicitudes todavía.<br>El bot las guardará automáticamente cuando alguien haga una cita o reserva por WhatsApp 📱</div>'
+        return
+      }
+
+      let html = `<table>
+        <thead><tr>
+          <th>TIPO</th><th>CLIENTE</th><th>TELÉFONO</th>
+          <th>DATOS</th><th>NOTAS</th><th>ESTADO</th><th>ACCIONES</th>
+        </tr></thead><tbody>`
+
+      solicitudes.forEach(s => {
+        const badge = s.estado === 'PENDIENTE'
+          ? '<span class="badge badge-pendiente">Pendiente</span>'
+          : s.estado === 'CONFIRMADA'
+          ? '<span class="badge badge-confirmada">Confirmada</span>'
+          : '<span class="badge badge-cancelada">Cancelada</span>'
+
+        // Parsea datos extra
+        let datosHtml = ''
+        if (s.datos) {
+          try {
+            const d = JSON.parse(s.datos)
+            datosHtml = Object.entries(d)
+              .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
+              .join('')
+          } catch(e) {
+            datosHtml = s.datos
+          }
+        }
+
+        html += `<tr>
+          <td><span class="badge badge-tipo">${s.tipo || 'solicitud'}</span></td>
+          <td><strong>${s.nombre || '—'}</strong><br>
+              <span style="font-size:11px;color:#64748b">${s.creadoEn?.split('T')[0] || ''}</span>
+          </td>
+          <td>📱 ${s.telefono}</td>
+          <td><div class="datos-extra">${datosHtml || '—'}</div></td>
+          <td style="font-size:12px;color:#94a3b8">${s.notas || '—'}</td>
+          <td>${badge}</td>
+          <td>
+            ${s.estado === 'PENDIENTE' ? `
+              <button class="btn btn-verde" onclick="cambiarEstado(${s.id},'CONFIRMADA')">✓ Confirmar</button>
+              <button class="btn btn-rojo"  onclick="cambiarEstado(${s.id},'CANCELADA')">✗ Cancelar</button>
+            ` : '—'}
+          </td>
+        </tr>`
+      })
+
+      html += '</tbody></table>'
+      document.getElementById('tablaSolicitudes').innerHTML = html
+    }
+
+    async function cambiarEstado(id, estado) {
+      const r = await apiFetch(`/api/solicitudes/${id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado })
+      })
+      if (r.ok) cargarSolicitudes()
+    }
+  </script>
+
+</body>
+</html>
