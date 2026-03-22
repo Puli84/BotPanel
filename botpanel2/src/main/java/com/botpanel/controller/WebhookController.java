@@ -60,8 +60,10 @@ public class WebhookController {
 
         Bot bot = encontrarBot(to);
         String contacto = from.replace("whatsapp:", "");
+
+        // Si el bot está inactivo, guardamos el mensaje pero no respondemos
         if (bot == null) {
-            System.out.println("Bot inactivo o no encontrado — no se responde");
+            System.out.println("Bot inactivo o no encontrado — mensaje recibido pero sin respuesta");
             return new MessagingResponse.Builder().build().toXml();
         }
 
