@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>BotPanel — Conversaciones</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; min-height: 100vh; }
+
+    .sidebar { width: 220px; background: #111827; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; padding: 24px 12px; }
+    .logo { font-size: 22px; font-weight: bold; padding: 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .logo span { color: #25d366; }
+    .nav-item { display: block; padding: 10px 12px; border-radius: 8px; color: #64748b; text-decoration: none; font-size: 14px; margin-bottom: 4px; }
+    .nav-item:hover { background: #1a2235; color: #e2e8f0; }
+    .nav-item.activo { background: rgba(37,211,102,0.1); color: #25d366; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; }
+    .usuario-info { font-size: 13px; padding: 0 8px 12px; }
+    .usuario-nombre { font-weight: bold; margin-bottom: 2px; }
+    .usuario-rol { font-size: 11px; color: #25d366; background: rgba(37,211,102,0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+    .btn-salir { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+
+    /* Layout principal */
+    .contenido { margin-left: 220px; flex: 1; display: flex; height: 100vh; overflow: hidden; }
+
+    /* Lista de conversaciones */
+    .lista-conv { width: 320px; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; }
+    .lista-header { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .lista-titulo { font-size: 18px; font-weight: bold; margin-bottom: 12px; }
+    .filtros { display: flex; gap: 8px; }
+    .filtro-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #64748b; font-size: 12px; cursor: pointer; }
+    .filtro-btn.activo { background: rgba(37,211,102,0.1); border-color: #25d366; color: #25d366; }
+    .lista-items { flex: 1; overflow-y: auto; }
+
+    .conv-item { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 0.15s; }
+    .conv-item:hover { background: #1a2235; }
+    .conv-item.activo { background: rgba(37,211,102,0.05); border-left: 3px solid #25d366; }
+    .conv-telefono { font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .conv-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-fecha { font-size: 11px; color: #475569; }
+    .badge-activa  { background: rgba(37,211,102,0.15); color: #25d366; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+    .badge-cerrada { background: rgba(100,116,139,0.15); color: #64748b; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+
+    /* Panel de chat */
+    .chat-panel { flex: 1; display: flex; flex-direction: column; }
+    .chat-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-between; align-items: center; }
+    .chat-contacto { font-weight: bold; font-size: 16px; }
+    .chat-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .chat-acciones { display: flex; gap: 8px; }
+
+    .chat-mensajes { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+    .msg { max-width: 70%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+    .msg-cliente { background: #1a2235; border: 1px solid rgba(255,255,255,0.07); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg-bot { background: rgba(37,211,102,0.1); border: 1px solid rgba(37,211,102,0.2); align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-hora { font-size: 10px; color: #475569; margin-top: 4px; }
+
+    .chat-input { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 10px; }
+    .chat-input textarea { flex: 1; background: #1a2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; font-family: Arial; resize: none; height: 44px; line-height: 1.4; }
+    .chat-input textarea:focus { border-color: #25d366; }
+
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-verde { background: #25d366; color: #000; }
+    .btn-verde:hover { background: #1db954; }
+    .btn-gris { background: rgba(255,255,255,0.05); color: #64748b; border: 1px solid rgba(255,255,255,0.1); }
+    .btn-gris:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+    .btn-rojo { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+
+    .sin-seleccion { flex: 1; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 15px; flex-direction: column; gap: 12px; }
+    .sin-seleccion-icono { font-size: 48px; }
+
+    .vacio { padding: 32px; text-align: center; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">Bot<span>Panel</span></div>
+    <a href="dashboard.html"      class="nav-item">⚡ Dashboard</a>
+    <a href="bots.html"           class="nav-item">🤖 Bots</a>
+    <a href="config-bot.html"     class="nav-item">⚙️ Configurar Bot</a>
+    <a href="conversaciones.html" class="nav-item activo">💬 Conversaciones</a>
+    <a href="metricas.html"       class="nav-item">📊 Métricas</a>
+    <a href="solicitudes.html"    class="nav-item">📋 Solicitudes</a>
+    <div class="sidebar-bottom">
+      <div class="usuario-info">
+        <div class="usuario-nombre" id="nombreUsuario">...</div>
+        <span class="usuario-rol" id="rolUsuario">...</span>
+      </div>
+      <button type="button" class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="contenido">
+
+    <!-- Lista de conversaciones -->
+    <div class="lista-conv">
+      <div class="lista-header">
+        <div class="lista-titulo">💬 Conversaciones</div>
+        <div class="filtros">
+          <button type="button" class="filtro-btn activo" onclick="filtrar('ACTIVA', this)">Activas</button>
+          <button type="button" class="filtro-btn" onclick="filtrar('CERRADA', this)">Cerradas</button>
+          <button type="button" class="filtro-btn" onclick="filtrar('TODAS', this)">Todas</button>
+        </div>
+      </div>
+      <div class="lista-items" id="listaConversaciones">
+        <div class="vacio">Cargando...</div>
+      </div>
+    </div>
+
+    <!-- Panel de chat -->
+    <div class="chat-panel" id="chatPanel">
+      <div class="sin-seleccion">
+        <div class="sin-seleccion-icono">💬</div>
+        <div>Selecciona una conversación para verla</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    let conversaciones = []
+    let convSeleccionada = null
+    let filtroActual = 'ACTIVA'
+    let intervaloRefresco = null
+
+    window.onload = async () => {
+      if (!verificarSesion()) return
+      const u = getUsuario()
+      document.getElementById('nombreUsuario').textContent = u.nombre
+      document.getElementById('rolUsuario').textContent    = u.rol
+      cargarConversaciones()
+      // Refresca cada 15 segundos
+      intervaloRefresco = setInterval(cargarConversaciones, 15000)
+    }
+
+    async function cargarConversaciones() {
+      const r = await apiFetch('/api/conversaciones')
+      conversaciones = await r.json()
+      renderizarLista()
+    }
+
+    function filtrar(estado, btn) {
+      filtroActual = estado
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'))
+      btn.classList.add('activo')
+      renderizarLista()
+    }
+
+    function renderizarLista() {
+      const filtradas = filtroActual === 'TODAS'
+        ? conversaciones
+        : conversaciones.filter(c => c.estado === filtroActual)
+
+      if (filtradas.length === 0) {
+        document.getElementById('listaConversaciones').innerHTML =
+          '<div class="vacio">No hay conversaciones</div>'
+        return
+      }
+
+      document.getElementById('listaConversaciones').innerHTML = filtradas.map(c => `
+        <div class="conv-item ${convSeleccionada?.id === c.id ? 'activo' : ''}"
+          onclick="seleccionarConv(${c.id})">
+          <div class="conv-telefono">
+            <span>📱 ${c.contacto}</span>
+            <span class="${c.estado === 'ACTIVA' ? 'badge-activa' : 'badge-cerrada'}">
+              ${c.estado === 'ACTIVA' ? 'Activa' : 'Cerrada'}
+            </span>
+          </div>
+          <div class="conv-preview">${c.nombreContacto || 'Cliente'}</div>
+          <div class="conv-fecha">${c.creadoEn ? c.creadoEn.split('T')[0] : ''}</div>
+        </div>
+      `).join('')
+    }
+
+    async function seleccionarConv(id) {
+      convSeleccionada = conversaciones.find(c => c.id === id)
+      renderizarLista()
+      await cargarMensajes(id)
+    }
+
+    async function cargarMensajes(id) {
+      const r = await apiFetch(`/api/conversaciones/${id}/mensajes`)
+      const mensajes = await r.json()
+      renderizarChat(mensajes)
+    }
+
+    function renderizarChat(mensajes) {
+      const conv = convSeleccionada
+      const esCerrada = conv.estado === 'CERRADA'
+
+      document.getElementById('chatPanel').innerHTML = `
+        <div class="chat-header">
+          <div>
+            <div class="chat-contacto">📱 ${conv.contacto}</div>
+            <div class="chat-sub">${conv.estado === 'ACTIVA' ? '🟢 Conversación activa' : '⚫ Conversación cerrada'}</div>
+          </div>
+          <div class="chat-acciones">
+            ${esCerrada
+              ? `<button type="button" class="btn btn-gris" onclick="reabrir(${conv.id})">↩️ Reabrir</button>`
+              : `<button type="button" class="btn btn-rojo" onclick="cerrar(${conv.id})">✓ Marcar resuelta</button>`
+            }
+          </div>
+        </div>
+
+        <div class="chat-mensajes" id="chatMensajes">
+          ${mensajes.length === 0
+            ? '<div class="vacio">No hay mensajes en esta conversación</div>'
+            : mensajes.map(m => `
+                <div class="msg ${m.origen === 'CLIENTE' ? 'msg-cliente' : 'msg-bot'}">
+                  <div>${m.contenido}</div>
+                  <div class="msg-hora">${m.origen === 'CLIENTE' ? '👤 Cliente' : '🤖 Bot'} · ${m.enviadoEn ? m.enviadoEn.split('T')[0] + ' ' + m.enviadoEn.split('T')[1]?.substring(0,5) : ''}</div>
+                </div>
+              `).join('')
+          }
+        </div>
+
+        ${!esCerrada ? `
+          <div class="chat-input">
+            <textarea id="inputMensaje" placeholder="Escribe un mensaje como agente..." 
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); enviarManual(); }"></textarea>
+            <button type="button" class="btn btn-verde" onclick="enviarManual()">Enviar</button>
+          </div>
+        ` : `
+          <div style="padding:12px 20px;text-align:center;color:#64748b;font-size:13px;border-top:1px solid rgba(255,255,255,0.07)">
+            Conversación cerrada — reabre para responder
+          </div>
+        `}
+      `
+
+      // Scroll al último mensaje
+      setTimeout(() => {
+        const msgs = document.getElementById('chatMensajes')
+        if (msgs) msgs.scrollTop = msgs.scrollHeight
+      }, 50)
+    }
+
+    async function enviarManual() {
+      const input = document.getElementById('inputMensaje')
+      const texto = input?.value?.trim()
+      if (!texto || !convSeleccionada) return
+
+      input.value = ''
+
+      const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/responder`, {
+        method: 'POST',
+        body: JSON.stringify({ texto })
+      })
+
+      if (r && r.ok) {
+        await cargarMensajes(convSeleccionada.id)
+      }
+    }
+
+    async function cerrar(id) {
+      const r = await apiFetch(`/api/conversaciones/${id}/cerrar`, { method: 'PATCH' })
+      if (r && r.ok) {
+        convSeleccionada.estado = 'CERRADA'
+        await cargarConversaciones()
+        await cargarMensajes(id)
+      }
+    }
+
+    async function reabrir(id) {
+      const r = await apiFetch(`/api/conversaciones/${id}/reabrir`, { method: 'PATCH' })
+      if (r && r.ok) {
+        convSeleccionada.estado = 'ACTIVA'
+        await cargarConversaciones()
+        await cargarMensajes(id)
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -60,6 +60,10 @@ public class WebhookController {
 
         Bot bot = encontrarBot(to);
         String contacto = from.replace("whatsapp:", "");
+        if (bot == null) {
+            System.out.println("Bot inactivo o no encontrado — no se responde");
+            return new MessagingResponse.Builder().build().toXml();
+        }
 
         List<Map<String, String>> historial = obtenerHistorial(
             contacto, bot != null ? bot.getEmpresa().getId() : null);
@@ -153,7 +157,8 @@ public class WebhookController {
         if (numeroDestino != null) {
             String numero = numeroDestino.replace("whatsapp:", "");
             return botRepository.findAll().stream()
-                    .filter(b -> numero.equals(b.getNumeroWhatsapp()))
+                    .filter(b -> numero.equals(b.getNumeroWhatsapp())
+                            && Boolean.TRUE.equals(b.getActivo()))
                     .findFirst().orElse(null);
         }
         return botRepository.findAll().stream()
