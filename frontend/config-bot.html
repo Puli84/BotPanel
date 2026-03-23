@@ -184,7 +184,7 @@
       document.getElementById('nombreUsuario').textContent = u.nombre
       document.getElementById('rolUsuario').textContent    = u.rol
       cargarBots()
-      document.querySelectorAll('input[type=text], textarea, select').forEach(el => {
+      document.querySelectorAll('input[type=text], input[type=checkbox], textarea, select').forEach(el => {
         el.addEventListener('input', actualizarPreview)
         el.addEventListener('change', actualizarPreview)
       })
@@ -211,10 +211,61 @@
       document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('seleccionado'))
       document.getElementById('btn-' + id)?.classList.add('seleccionado')
       document.getElementById('formulario').style.display = 'block'
-      if (botSeleccionado.contextoIA) {
-        document.getElementById('previewContexto').textContent = botSeleccionado.contextoIA
-      }
+      cargarDesdeLocal(id)
       actualizarPreview()
+    }
+
+    function claveLocal(botId) {
+      return `config_bot_${botId}`
+    }
+
+    function guardarEnLocal() {
+      if (!botSeleccionado) return
+      const datos = {
+        negocioNombre:       document.getElementById('negocioNombre').value,
+        negocioTipo:         document.getElementById('negocioTipo').value,
+        negocioTelefono:     document.getElementById('negocioTelefono').value,
+        negocioWeb:          document.getElementById('negocioWeb').value,
+        negocioDireccion:    document.getElementById('negocioDireccion').value,
+        negocioHorario:      document.getElementById('negocioHorario').value,
+        negocioDescripcion:  document.getElementById('negocioDescripcion').value,
+        negocioTono:         document.getElementById('negocioTono').value,
+        datoNombre:          document.getElementById('dato-nombre').checked,
+        datoTelefono:        document.getElementById('dato-telefono').checked,
+        datoFecha:           document.getElementById('dato-fecha').checked,
+        datoPersonas:        document.getElementById('dato-personas').checked,
+        datoServicio:        document.getElementById('dato-servicio').checked,
+        datoMatricula:       document.getElementById('dato-matricula').checked,
+        datoEmail:           document.getElementById('dato-email').checked,
+        mensajeConfirmacion: document.getElementById('mensajeConfirmacion').value,
+        bloques:             bloques
+      }
+      localStorage.setItem(claveLocal(botSeleccionado.id), JSON.stringify(datos))
+    }
+
+    function cargarDesdeLocal(botId) {
+      const raw = localStorage.getItem(claveLocal(botId))
+      if (!raw) return
+      const d = JSON.parse(raw)
+      document.getElementById('negocioNombre').value       = d.negocioNombre       || ''
+      document.getElementById('negocioTipo').value         = d.negocioTipo         || 'restaurante'
+      document.getElementById('negocioTelefono').value     = d.negocioTelefono     || ''
+      document.getElementById('negocioWeb').value          = d.negocioWeb          || ''
+      document.getElementById('negocioDireccion').value    = d.negocioDireccion    || ''
+      document.getElementById('negocioHorario').value      = d.negocioHorario      || ''
+      document.getElementById('negocioDescripcion').value  = d.negocioDescripcion  || ''
+      document.getElementById('negocioTono').value         = d.negocioTono         || 'amable y cercano'
+      document.getElementById('dato-nombre').checked       = d.datoNombre    ?? true
+      document.getElementById('dato-telefono').checked     = d.datoTelefono  ?? true
+      document.getElementById('dato-fecha').checked        = d.datoFecha     ?? false
+      document.getElementById('dato-personas').checked     = d.datoPersonas  ?? false
+      document.getElementById('dato-servicio').checked     = d.datoServicio  ?? false
+      document.getElementById('dato-matricula').checked    = d.datoMatricula ?? false
+      document.getElementById('dato-email').checked        = d.datoEmail     ?? false
+      document.getElementById('mensajeConfirmacion').value = d.mensajeConfirmacion || ''
+      bloques = d.bloques || []
+      contadorBloques = bloques.length > 0 ? Math.max(...bloques.map(b => b.id)) : 0
+      renderizarBloques()
     }
 
     function agregarBloque(tipo) {
@@ -422,6 +473,7 @@
 
     function actualizarPreview() {
       document.getElementById('previewContexto').textContent = generarContexto()
+      guardarEnLocal()
     }
 
     async function guardar() {

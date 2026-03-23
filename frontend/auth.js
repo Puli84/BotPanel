@@ -16,7 +16,11 @@ function verificarSesion() {
 
 // Cierra la sesión y vuelve al login
 function cerrarSesion() {
-  localStorage.clear();
+  localStorage.removeItem('token');
+  localStorage.removeItem('nombre');
+  localStorage.removeItem('email');
+  localStorage.removeItem('rol');
+  localStorage.removeItem('empresaId');
   window.location.href = "login.html";
 }
 

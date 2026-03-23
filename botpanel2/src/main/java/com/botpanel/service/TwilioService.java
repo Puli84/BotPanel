@@ -41,6 +41,7 @@ public class TwilioService {
             if (imagenUrl != null && !imagenUrl.isEmpty()) {
                 // Limpia caracteres problemáticos de la URL
                 String urlLimpia = imagenUrl.trim()
+                    .replaceAll("#.*$", "")  // elimina fragmentos (#...) que Java URI no acepta en el path
                     .replace(" ", "%20")
                     .replace("[", "%5B")
                     .replace("]", "%5D");

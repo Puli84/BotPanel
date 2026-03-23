@@ -93,7 +93,7 @@ public class WebhookController {
             String[] partes = respuestaLimpia.split("##ARCHIVO##");
             respuestaLimpia = partes[0].trim();
             if (partes.length > 1)
-            	archivoUrl = partes[1].replace("##", "").replace("%20", "").trim();
+            	archivoUrl = partes[1].split("##")[0].replace("%20", "").trim();
         }
 
         // Guarda solicitud si la hay
