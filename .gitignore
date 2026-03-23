@@ -4,6 +4,9 @@ botpanel2/.classpath
 botpanel2/.project
 botpanel2/.settings/
 
+# Uploads locales
+botpanel2/uploads/
+
 
 
 # Node.js
