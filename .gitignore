@@ -4,6 +4,9 @@ botpanel2/.classpath
 botpanel2/.project
 botpanel2/.settings/
 
+# Secretos locales
+botpanel2/src/main/resources/application-local.properties
+
 # Uploads locales
 botpanel2/uploads/
 
