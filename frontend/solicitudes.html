@@ -48,6 +48,18 @@
     .btn-verde { background: #25d366; color: #000; }
     .btn-rojo  { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
     .vacio { padding: 40px; text-align: center; color: #64748b; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.visible { display: flex; }
+    .modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 28px; width: 460px; max-width: 90vw; }
+    .modal-titulo { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+    .modal-subtitulo { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+    .modal textarea { width: 100%; background: #0a0e1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e2e8f0; padding: 12px; font-size: 13px; resize: vertical; min-height: 100px; outline: none; }
+    .modal textarea:focus { border-color: #25d366; }
+    .modal-acciones { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .btn-cancelar-modal { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .btn-enviar-verde { background: #25d366; color: #000; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+    .btn-enviar-rojo  { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -67,6 +79,18 @@
       <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
     </div>
   </aside>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-titulo" id="modalTitulo"></div>
+      <div class="modal-subtitulo" id="modalSubtitulo"></div>
+      <textarea id="modalMensaje"></textarea>
+      <div class="modal-acciones">
+        <button class="btn-cancelar-modal" onclick="cerrarModal()">Cancelar</button>
+        <button id="modalBtnEnviar" onclick="confirmarCambio()">Enviar</button>
+      </div>
+    </div>
+  </div>
 
   <main class="contenido">
     <div class="titulo-pagina">📋 Solicitudes</div>
@@ -159,8 +183,8 @@
           <td>${badge}</td>
           <td>
             ${s.estado === 'PENDIENTE' ? `
-              <button class="btn btn-verde" onclick="cambiarEstado(${s.id},'CONFIRMADA')">✓ Confirmar</button>
-              <button class="btn btn-rojo"  onclick="cambiarEstado(${s.id},'CANCELADA')">✗ Cancelar</button>
+              <button class="btn btn-verde" onclick="abrirModal(${s.id},'CONFIRMADA','${(s.nombre||'').replace(/'/g,"\\'")}')">✓ Confirmar</button>
+              <button class="btn btn-rojo"  onclick="abrirModal(${s.id},'CANCELADA','${(s.nombre||'').replace(/'/g,"\\'")}')">✗ Cancelar</button>
             ` : '—'}
           </td>
         </tr>`
@@ -170,12 +194,34 @@
       document.getElementById('tablaSolicitudes').innerHTML = html
     }
 
-    async function cambiarEstado(id, estado) {
-      const r = await apiFetch(`/api/solicitudes/${id}/estado`, {
+    let modalData = {}
+
+    function abrirModal(id, estado, nombre) {
+      modalData = { id, estado }
+      const confirmando = estado === 'CONFIRMADA'
+      document.getElementById('modalTitulo').textContent = confirmando ? '✅ Confirmar cita' : '❌ Cancelar cita'
+      document.getElementById('modalSubtitulo').textContent = `Cliente: ${nombre} — puedes editar el mensaje antes de enviarlo`
+      document.getElementById('modalMensaje').value = confirmando
+        ? `Hola ${nombre}, tu cita ha sido *confirmada*. ¡Te esperamos!`
+        : `Hola ${nombre}, lamentablemente tu cita ha sido *cancelada*. Contacta con nosotros para más información.`
+      const btn = document.getElementById('modalBtnEnviar')
+      btn.textContent = confirmando ? '✅ Confirmar y enviar' : '❌ Cancelar y enviar'
+      btn.className = confirmando ? 'btn-enviar-verde' : 'btn-enviar-rojo'
+      document.getElementById('modalOverlay').classList.add('visible')
+    }
+
+    function cerrarModal() {
+      document.getElementById('modalOverlay').classList.remove('visible')
+      modalData = {}
+    }
+
+    async function confirmarCambio() {
+      const mensaje = document.getElementById('modalMensaje').value.trim()
+      const r = await apiFetch(`/api/solicitudes/${modalData.id}/estado`, {
         method: 'PATCH',
-        body: JSON.stringify({ estado })
+        body: JSON.stringify({ estado: modalData.estado, mensaje })
       })
-      if (r.ok) cargarSolicitudes()
+      if (r.ok) { cerrarModal(); cargarSolicitudes() }
     }
   </script>
 

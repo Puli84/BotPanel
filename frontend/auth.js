@@ -2,13 +2,13 @@
 // auth.js — funciones que comparten TODAS las páginas
 // ─────────────────────────────────────────────────────────
 
-const API = "http://localhost:8080";
+const API = "https://botpanel-production.up.railway.app";
 
 // Comprueba si hay sesión activa. Si no, manda al login.
 function verificarSesion() {
   const token = localStorage.getItem("token");
   if (!token) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
     return false;
   }
   return true;
@@ -21,7 +21,7 @@ function cerrarSesion() {
   localStorage.removeItem('email');
   localStorage.removeItem('rol');
   localStorage.removeItem('empresaId');
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 
 // Hace peticiones a la API con el token automáticamente

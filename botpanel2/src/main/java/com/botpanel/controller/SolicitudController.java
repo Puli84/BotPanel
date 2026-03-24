@@ -5,6 +5,7 @@ import com.botpanel.entity.Usuario;
 import com.botpanel.enums.EstadoSolicitud;
 import com.botpanel.enums.Rol;
 import com.botpanel.repository.SolicitudRepository;
+import com.botpanel.service.TwilioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,11 @@ import java.util.Map;
 public class SolicitudController {
 
     private final SolicitudRepository solicitudRepository;
+    private final TwilioService twilioService;
 
-    public SolicitudController(SolicitudRepository solicitudRepository) {
+    public SolicitudController(SolicitudRepository solicitudRepository, TwilioService twilioService) {
         this.solicitudRepository = solicitudRepository;
+        this.twilioService = twilioService;
     }
 
     @GetMapping
@@ -39,7 +42,26 @@ public class SolicitudController {
             @RequestBody Map<String, String> body) {
         Solicitud s = solicitudRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
-        s.setEstado(EstadoSolicitud.valueOf(body.get("estado")));
-        return ResponseEntity.ok(solicitudRepository.save(s));
+
+        EstadoSolicitud nuevoEstado = EstadoSolicitud.valueOf(body.get("estado"));
+        s.setEstado(nuevoEstado);
+        solicitudRepository.save(s);
+
+        if (s.getTelefono() != null && !s.getTelefono().isBlank()) {
+            String mensajePersonalizado = body.get("mensaje");
+            String mensaje = null;
+            if (mensajePersonalizado != null && !mensajePersonalizado.isBlank()) {
+                mensaje = mensajePersonalizado;
+            } else if (nuevoEstado == EstadoSolicitud.CONFIRMADA) {
+                mensaje = "Hola " + s.getNombre() + ", tu cita ha sido *confirmada*. ¡Te esperamos!";
+            } else if (nuevoEstado == EstadoSolicitud.CANCELADA) {
+                mensaje = "Hola " + s.getNombre() + ", lamentablemente tu cita ha sido *cancelada*. Contacta con nosotros para más información.";
+            }
+            if (mensaje != null) {
+                twilioService.enviarMensaje(s.getTelefono(), mensaje);
+            }
+        }
+
+        return ResponseEntity.ok(s);
     }
 }
