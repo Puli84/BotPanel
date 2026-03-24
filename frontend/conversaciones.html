@@ -123,16 +123,14 @@
     let conversaciones = []
     let convSeleccionada = null
     let filtroActual = 'ACTIVA'
-    let intervaloRefresco = null
 
     window.onload = async () => {
       if (!verificarSesion()) return
       const u = getUsuario()
       document.getElementById('nombreUsuario').textContent = u.nombre
       document.getElementById('rolUsuario').textContent    = u.rol
-      cargarConversaciones()
-      // Refresca cada 15 segundos
-      intervaloRefresco = setInterval(cargarConversaciones, 15000)
+      await cargarConversaciones()
+      iniciarPolling()
     }
 
     async function cargarConversaciones() {
@@ -176,6 +174,7 @@
 
     async function seleccionarConv(id) {
       convSeleccionada = conversaciones.find(c => c.id === id)
+      ultimoMensajeId = null
       renderizarLista()
       await cargarMensajes(id)
     }
@@ -257,6 +256,33 @@
       if (r && r.ok) {
         await cargarMensajes(convSeleccionada.id)
       }
+    }
+
+    // ── Polling — refresca mensajes y lista cada 4 segundos ───────
+    let pollingInterval = null
+    let ultimoMensajeId = null
+
+    function iniciarPolling() {
+      detenerPolling()
+      pollingInterval = setInterval(async () => {
+        // Refresca lista de conversaciones (para ver nuevas)
+        await cargarConversaciones()
+        // Refresca mensajes de la conversación abierta
+        if (convSeleccionada) {
+          const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/mensajes`)
+          if (!r) return
+          const mensajes = await r.json()
+          const ultimoId = mensajes[mensajes.length - 1]?.id
+          if (ultimoId !== ultimoMensajeId) {
+            ultimoMensajeId = ultimoId
+            renderizarChat(mensajes)
+          }
+        }
+      }, 4000)
+    }
+
+    function detenerPolling() {
+      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null }
     }
 
     async function cerrar(id) {
