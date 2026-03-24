@@ -68,7 +68,7 @@ public class ConversacionController {
         // Guarda el mensaje en BD
         Mensaje msg = new Mensaje();
         msg.setContenido(texto);
-        msg.setOrigen(OrigenMensaje.BOT);
+        msg.setOrigen(OrigenMensaje.AGENTE);
         msg.setConversacion(conv);
         mensajeRepository.save(msg);
 
