@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>BotPanel — Configurar Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #111827; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; padding: 24px 12px; }
+    .logo { font-size: 22px; font-weight: bold; padding: 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .logo span { color: #25d366; }
+    .nav-item { display: block; padding: 10px 12px; border-radius: 8px; color: #64748b; text-decoration: none; font-size: 14px; margin-bottom: 4px; }
+    .nav-item:hover { background: #1a2235; color: #e2e8f0; }
+    .nav-item.activo { background: rgba(37,211,102,0.1); color: #25d366; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; }
+    .usuario-info { font-size: 13px; padding: 0 8px 12px; }
+    .usuario-nombre { font-weight: bold; margin-bottom: 2px; }
+    .usuario-rol { font-size: 11px; color: #25d366; background: rgba(37,211,102,0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+    .btn-salir { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+    .contenido { margin-left: 220px; flex: 1; padding: 32px; max-width: 900px; }
+    .titulo-pagina { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+    .subtitulo-pagina { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    .bot-selector { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .bot-btn { padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #111827; color: #64748b; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+    .bot-btn:hover { border-color: rgba(37,211,102,0.3); color: #e2e8f0; }
+    .bot-btn.seleccionado { background: rgba(37,211,102,0.1); border-color: #25d366; color: #25d366; }
+    .card { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .card-titulo { font-size: 15px; font-weight: bold; margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: #64748b; margin-bottom: 16px; line-height: 1.6; }
+    label { display: block; font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px; letter-spacing: 0.5px; }
+    input[type=text], input[type=email], textarea, select { width: 100%; background: #1a2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; font-family: Arial; }
+    input[type=text]:focus, textarea:focus, select:focus { border-color: #25d366; }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    select option { background: #1a2235; }
+    .bloques-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .bloque { background: #1a2235; border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; position: relative; }
+    .bloque.tipo-texto   { border-left: 3px solid #25d366; }
+    .bloque.tipo-archivo { border-left: 3px solid #3b82f6; }
+    .bloque.tipo-enlace  { border-left: 3px solid #f59e0b; }
+    .bloque-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .bloque-tipo-badge { font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 10px; }
+    .badge-texto   { background: rgba(37,211,102,0.15); color: #25d366; }
+    .badge-archivo { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .badge-enlace  { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+    .bloque-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-eliminar-bloque { position: absolute; top: 12px; right: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+    .btn-eliminar-bloque:hover { background: rgba(239,68,68,0.2); }
+    .add-bloques { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+    .btn-add { padding: 8px 16px; border-radius: 8px; border: 1px dashed; font-size: 13px; cursor: pointer; background: transparent; transition: all 0.15s; }
+    .btn-add-texto   { border-color: #25d366; color: #25d366; }
+    .btn-add-texto:hover   { background: rgba(37,211,102,0.1); }
+    .btn-add-archivo { border-color: #3b82f6; color: #3b82f6; }
+    .btn-add-archivo:hover { background: rgba(59,130,246,0.1); }
+    .btn-add-enlace  { border-color: #f59e0b; color: #f59e0b; }
+    .btn-add-enlace:hover  { background: rgba(245,158,11,0.1); }
+    .preview-box { background: #0a0e1a; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 16px; font-size: 12px; color: #64748b; line-height: 1.8; max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-verde { background: #25d366; color: #000; }
+    .btn-verde:hover { background: #1db954; }
+    .mensaje { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+    .mensaje.error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; display: block; }
+    .mensaje.exito { background: rgba(37,211,102,0.15); border: 1px solid rgba(37,211,102,0.3); color: #25d366; display: block; }
+    .vacio { padding: 40px; text-align: center; color: #64748b; }
+    .upload-area { border: 2px dashed rgba(59,130,246,0.3); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.15s; color: #64748b; font-size: 13px; }
+    .upload-area:hover { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.05); }
+    .archivo-nombre { font-size: 12px; color: #25d366; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">Bot<span>Panel</span></div>
+    <a href="dashboard.html"   class="nav-item">⚡ Dashboard</a>
+    <a href="bots.html"        class="nav-item">🤖 Bots</a>
+    <a href="config-bot.html"  class="nav-item activo">⚙️ Configurar Bot</a>
+    <a href="conversaciones.html" class="nav-item activo">💬 Conversaciones</a>
+    <a href="metricas.html"    class="nav-item">📊 Métricas</a>
+    <a href="solicitudes.html" class="nav-item">📋 Solicitudes</a>
+    <div class="sidebar-bottom">
+      <div class="usuario-info">
+        <div class="usuario-nombre" id="nombreUsuario">...</div>
+        <span class="usuario-rol" id="rolUsuario">...</span>
+      </div>
+      <button type="button" class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    <div class="titulo-pagina">⚙️ Configurar Bot</div>
+    <div class="subtitulo-pagina">Define cómo responde tu bot sin escribir código</div>
+
+    <div id="selectorBots" class="bot-selector">
+      <div class="vacio">Cargando bots...</div>
+    </div>
+
+    <div id="formulario" style="display:none">
+
+      <div class="card">
+        <div class="card-titulo">🏢 Información del negocio</div>
+        <div class="card-desc">Datos básicos que el bot conocerá sobre tu empresa.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div><label>Nombre del negocio</label><input type="text" id="negocioNombre" placeholder="Ej: Restaurante El Rincón" /></div>
+          <div><label>Tipo de negocio</label>
+            <select id="negocioTipo">
+              <option value="restaurante">Restaurante / Bar</option>
+              <option value="floristeria">Floristería</option>
+              <option value="taller">Taller mecánico</option>
+              <option value="clinica">Clínica / Salud</option>
+              <option value="tienda">Tienda / Comercio</option>
+              <option value="peluqueria">Peluquería / Estética</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div><label>Teléfono</label><input type="text" id="negocioTelefono" placeholder="Ej: 638 130 899" /></div>
+          <div><label>Web</label><input type="text" id="negocioWeb" placeholder="Ej: flordelava.es" /></div>
+          <div><label>Dirección</label><input type="text" id="negocioDireccion" placeholder="Ej: Calle Mayor 5, Madrid" /></div>
+          <div><label>Horario</label><input type="text" id="negocioHorario" placeholder="Ej: Lunes a Sábado 9:00-17:00" /></div>
+        </div>
+        <div style="margin-top:16px;">
+          <label>Descripción breve</label>
+          <textarea id="negocioDescripcion" style="min-height:60px" placeholder="Ej: Especialistas en flores preservadas."></textarea>
+        </div>
+        <div style="margin-top:16px;">
+          <label>Tono del bot</label>
+          <select id="negocioTono">
+            <option value="amable y cercano">😊 Amable y cercano</option>
+            <option value="profesional y formal">👔 Profesional y formal</option>
+            <option value="divertido y desenfadado">🎉 Divertido y desenfadado</option>
+            <option value="neutro">⚖️ Neutro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-titulo">📋 ¿Qué datos pedir para una cita o pedido?</div>
+        <div class="card-desc">Marca qué información debe recoger el bot.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-nombre" checked> Nombre</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-telefono" checked> Teléfono</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-fecha"> Fecha y hora</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-personas"> Número de personas</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-servicio"> Servicio / producto</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-matricula"> Matrícula / modelo</label>
+          <label style="text-transform:none;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="dato-email"> Email</label>
+        </div>
+        <div style="margin-top:16px;">
+          <label>Mensaje de confirmación al recibir la solicitud</label>
+          <textarea id="mensajeConfirmacion" style="min-height:60px" placeholder="Ej: ✅ Hemos recibido tu solicitud. En breve nos pondremos en contacto."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-titulo">🧠 Reglas de respuesta</div>
+        <div class="card-desc">Define qué responde el bot. Añade texto, archivos PDF o enlaces.</div>
+        <div class="bloques-container" id="bloquesContainer"></div>
+        <div class="add-bloques">
+          <button type="button" class="btn-add btn-add-texto"   onclick="agregarBloque('texto')">+ Respuesta de texto</button>
+          <button type="button" class="btn-add btn-add-archivo" onclick="agregarBloque('archivo')">+ Enviar archivo/PDF</button>
+          <button type="button" class="btn-add btn-add-enlace"  onclick="agregarBloque('enlace')">+ Compartir enlace</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-titulo">👁️ Vista previa del contexto generado</div>
+        <div class="card-desc">Se genera automáticamente con los datos que has rellenado.</div>
+        <div class="preview-box" id="previewContexto">Rellena los campos para ver el contexto...</div>
+        <button type="button" class="btn btn-verde" style="margin-top:16px" onclick="guardar()">💾 Guardar configuración</button>
+        <div class="mensaje" id="mensajeGuardar"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    let botSeleccionado = null
+    let bots = []
+    let bloques = []
+    let contadorBloques = 0
+
+    window.onload = async () => {
+      if (!verificarSesion()) return
+      const u = getUsuario()
+      document.getElementById('nombreUsuario').textContent = u.nombre
+      document.getElementById('rolUsuario').textContent    = u.rol
+      cargarBots()
+      document.querySelectorAll('input[type=text], input[type=checkbox], textarea, select').forEach(el => {
+        el.addEventListener('input', actualizarPreview)
+        el.addEventListener('change', actualizarPreview)
+      })
+    }
+
+    async function cargarBots() {
+      const r = await apiFetch('/api/bots')
+      bots = await r.json()
+      if (bots.length === 0) {
+        document.getElementById('selectorBots').innerHTML =
+          '<div class="vacio">No tienes bots. <a href="bots.html" style="color:#25d366">Crea uno primero →</a></div>'
+        return
+      }
+      let html = ''
+      bots.forEach(b => {
+        html += `<button type="button" class="bot-btn" onclick="seleccionarBot(${b.id})" id="btn-${b.id}">🤖 ${b.nombre}</button>`
+      })
+      document.getElementById('selectorBots').innerHTML = html
+      seleccionarBot(bots[0].id)
+    }
+
+    function seleccionarBot(id) {
+      botSeleccionado = bots.find(b => b.id === id)
+      document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('seleccionado'))
+      document.getElementById('btn-' + id)?.classList.add('seleccionado')
+      document.getElementById('formulario').style.display = 'block'
+      cargarDesdeLocal(id)
+      actualizarPreview()
+    }
+
+    function claveLocal(botId) {
+      return `config_bot_${botId}`
+    }
+
+    function guardarEnLocal() {
+      if (!botSeleccionado) return
+      const datos = {
+        negocioNombre:       document.getElementById('negocioNombre').value,
+        negocioTipo:         document.getElementById('negocioTipo').value,
+        negocioTelefono:     document.getElementById('negocioTelefono').value,
+        negocioWeb:          document.getElementById('negocioWeb').value,
+        negocioDireccion:    document.getElementById('negocioDireccion').value,
+        negocioHorario:      document.getElementById('negocioHorario').value,
+        negocioDescripcion:  document.getElementById('negocioDescripcion').value,
+        negocioTono:         document.getElementById('negocioTono').value,
+        datoNombre:          document.getElementById('dato-nombre').checked,
+        datoTelefono:        document.getElementById('dato-telefono').checked,
+        datoFecha:           document.getElementById('dato-fecha').checked,
+        datoPersonas:        document.getElementById('dato-personas').checked,
+        datoServicio:        document.getElementById('dato-servicio').checked,
+        datoMatricula:       document.getElementById('dato-matricula').checked,
+        datoEmail:           document.getElementById('dato-email').checked,
+        mensajeConfirmacion: document.getElementById('mensajeConfirmacion').value,
+        bloques:             bloques
+      }
+      localStorage.setItem(claveLocal(botSeleccionado.id), JSON.stringify(datos))
+    }
+
+    function cargarDesdeLocal(botId) {
+      const raw = localStorage.getItem(claveLocal(botId))
+      if (!raw) return
+      const d = JSON.parse(raw)
+      document.getElementById('negocioNombre').value       = d.negocioNombre       || ''
+      document.getElementById('negocioTipo').value         = d.negocioTipo         || 'restaurante'
+      document.getElementById('negocioTelefono').value     = d.negocioTelefono     || ''
+      document.getElementById('negocioWeb').value          = d.negocioWeb          || ''
+      document.getElementById('negocioDireccion').value    = d.negocioDireccion    || ''
+      document.getElementById('negocioHorario').value      = d.negocioHorario      || ''
+      document.getElementById('negocioDescripcion').value  = d.negocioDescripcion  || ''
+      document.getElementById('negocioTono').value         = d.negocioTono         || 'amable y cercano'
+      document.getElementById('dato-nombre').checked       = d.datoNombre    ?? true
+      document.getElementById('dato-telefono').checked     = d.datoTelefono  ?? true
+      document.getElementById('dato-fecha').checked        = d.datoFecha     ?? false
+      document.getElementById('dato-personas').checked     = d.datoPersonas  ?? false
+      document.getElementById('dato-servicio').checked     = d.datoServicio  ?? false
+      document.getElementById('dato-matricula').checked    = d.datoMatricula ?? false
+      document.getElementById('dato-email').checked        = d.datoEmail     ?? false
+      document.getElementById('mensajeConfirmacion').value = d.mensajeConfirmacion || ''
+      bloques = d.bloques || []
+      contadorBloques = bloques.length > 0 ? Math.max(...bloques.map(b => b.id)) : 0
+      renderizarBloques()
+    }
+
+    function agregarBloque(tipo) {
+      const id = ++contadorBloques
+      bloques.push({ id, tipo, pregunta: '', respuesta: '', archivoNombre: '', archivoUrl: '', enlace: '' })
+      renderizarBloques()
+      actualizarPreview()
+    }
+
+    function eliminarBloque(id) {
+      bloques = bloques.filter(b => b.id !== id)
+      renderizarBloques()
+      actualizarPreview()
+    }
+
+    function renderizarBloques() {
+      const container = document.getElementById('bloquesContainer')
+      if (bloques.length === 0) {
+        container.innerHTML = '<p style="color:#64748b;font-size:13px;padding:8px 0">Añade reglas de respuesta con los botones de abajo.</p>'
+        return
+      }
+      container.innerHTML = bloques.map(b => {
+        if (b.tipo === 'texto') return `
+          <div class="bloque tipo-texto" id="bloque-${b.id}">
+            <div class="bloque-header"><span class="bloque-tipo-badge badge-texto">💬 Texto</span></div>
+            <button type="button" class="btn-eliminar-bloque" onclick="eliminarBloque(${b.id})">✕ Eliminar</button>
+            <div class="bloque-grid">
+              <div>
+                <label>Cuando alguien pregunte por...</label>
+                <input type="text" placeholder="Ej: ramos, precios, horario..." value="${b.pregunta}"
+                  oninput="actualizarBloque(${b.id}, 'pregunta', this.value)" />
+              </div>
+              <div>
+                <label>Responde con este texto</label>
+                <textarea placeholder="Ej: Nuestros ramos desde 40€ 🌸"
+                  oninput="actualizarBloque(${b.id}, 'respuesta', this.value)">${b.respuesta}</textarea>
+              </div>
+            </div>
+          </div>`
+
+        if (b.tipo === 'archivo') return `
+          <div class="bloque tipo-archivo" id="bloque-${b.id}">
+            <div class="bloque-header"><span class="bloque-tipo-badge badge-archivo">📎 Archivo</span></div>
+            <button type="button" class="btn-eliminar-bloque" onclick="eliminarBloque(${b.id})">✕ Eliminar</button>
+            <div class="bloque-grid">
+              <div>
+                <label>Cuando alguien pregunte por...</label>
+                <input type="text" placeholder="Ej: catálogo, tarifas..." value="${b.pregunta}"
+                  oninput="actualizarBloque(${b.id}, 'pregunta', this.value)" />
+                <label style="margin-top:10px">Texto que acompaña al archivo</label>
+                <input type="text" placeholder="Ej: Aquí tienes nuestro catálogo 📄" value="${b.respuesta}"
+                  oninput="actualizarBloque(${b.id}, 'respuesta', this.value)" />
+              </div>
+              <div>
+                <label>Archivo a enviar (PDF, imagen...)</label>
+                <input type="file" id="file-${b.id}" accept=".pdf,.jpg,.jpeg,.png"
+                  style="display:none"
+                  onchange="subirArchivo(${b.id}, this)" />
+                <div id="uploadArea-${b.id}" class="upload-area"
+                  onclick="document.getElementById('file-${b.id}').click()">
+                  ${b.archivoNombre
+                    ? `<div>📎 ${b.archivoNombre}</div><div class="archivo-nombre">✅ Archivo listo</div>`
+                    : `<div>📁 Haz clic para subir</div><div style="font-size:11px;margin-top:4px">PDF, JPG, PNG</div>`}
+                </div>
+              </div>
+            </div>
+          </div>`
+
+        if (b.tipo === 'enlace') return `
+          <div class="bloque tipo-enlace" id="bloque-${b.id}">
+            <div class="bloque-header"><span class="bloque-tipo-badge badge-enlace">🔗 Enlace</span></div>
+            <button type="button" class="btn-eliminar-bloque" onclick="eliminarBloque(${b.id})">✕ Eliminar</button>
+            <div class="bloque-grid">
+              <div>
+                <label>Cuando alguien pregunte por...</label>
+                <input type="text" placeholder="Ej: tienda, comprar..." value="${b.pregunta}"
+                  oninput="actualizarBloque(${b.id}, 'pregunta', this.value)" />
+                <label style="margin-top:10px">Texto que acompaña al enlace</label>
+                <input type="text" placeholder="Ej: Aquí puedes ver nuestros productos 👉" value="${b.respuesta}"
+                  oninput="actualizarBloque(${b.id}, 'respuesta', this.value)" />
+              </div>
+              <div>
+                <label>URL del enlace</label>
+                <input type="text" placeholder="Ej: https://flordelava.es/tienda-online" value="${b.enlace}"
+                  oninput="actualizarBloque(${b.id}, 'enlace', this.value)" />
+              </div>
+            </div>
+          </div>`
+        return ''
+      }).join('')
+    }
+
+    function actualizarBloque(id, campo, valor) {
+      const bloque = bloques.find(b => b.id === id)
+      if (bloque) bloque[campo] = valor
+      actualizarPreview()
+    }
+
+    async function subirArchivo(id, input) {
+      const file = input.files[0]
+      if (!file) return
+
+      // Muestra estado cargando
+      const area = document.getElementById('uploadArea-' + id)
+      if (area) area.innerHTML = `<div>⏳ Subiendo ${file.name}...</div>`
+
+      const formData = new FormData()
+      formData.append('archivo', file)
+
+      try {
+        const r = await fetch(`${API}/api/archivos/subir`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        })
+
+        const datos = await r.json()
+        console.log('✅ Archivo subido:', datos)
+
+        const bloque = bloques.find(b => b.id === id)
+        if (bloque) {
+          bloque.archivoNombre = datos.nombre
+       bloque.archivoUrl = `https://trilingual-terrie-unequivocally.ngrok-free.dev${datos.url}`
+        }
+
+        // Actualiza solo el área de upload sin re-renderizar todo
+        if (area) area.innerHTML = `<div>📎 ${datos.nombre}</div><div class="archivo-nombre">✅ Archivo listo</div>`
+        actualizarPreview()
+
+      } catch (e) {
+        console.error('❌ Error subiendo archivo:', e)
+        if (area) area.innerHTML = `<div style="color:#ef4444">❌ Error. Inténtalo de nuevo.</div>`
+      }
+    }
+
+    function generarContexto() {
+      const nombre      = document.getElementById('negocioNombre').value
+      const telefono    = document.getElementById('negocioTelefono').value
+      const web         = document.getElementById('negocioWeb').value
+      const direccion   = document.getElementById('negocioDireccion').value
+      const horario     = document.getElementById('negocioHorario').value
+      const descripcion = document.getElementById('negocioDescripcion').value
+      const tono        = document.getElementById('negocioTono').value
+      const msgConf     = document.getElementById('mensajeConfirmacion').value
+
+      const datos = []
+      if (document.getElementById('dato-nombre').checked)    datos.push('nombre')
+      if (document.getElementById('dato-telefono').checked)  datos.push('teléfono')
+      if (document.getElementById('dato-fecha').checked)     datos.push('fecha y hora')
+      if (document.getElementById('dato-personas').checked)  datos.push('número de personas')
+      if (document.getElementById('dato-servicio').checked)  datos.push('servicio o producto deseado')
+      if (document.getElementById('dato-matricula').checked) datos.push('matrícula o modelo')
+      if (document.getElementById('dato-email').checked)     datos.push('email')
+
+      let ctx = `Eres el asistente virtual de ${nombre || 'este negocio'}`
+      if (descripcion) ctx += `, ${descripcion}`
+      ctx += `\nTono: ${tono}. Responde siempre en español.`
+
+      if (direccion || horario || telefono || web) {
+        ctx += `\n\nINFORMACIÓN:`
+        if (direccion) ctx += `\n- Dirección: ${direccion}`
+        if (horario)   ctx += `\n- Horario: ${horario}`
+        if (telefono)  ctx += `\n- Teléfono: ${telefono}`
+        if (web)       ctx += `\n- Web: ${web}`
+      }
+
+      const bloquesTexto   = bloques.filter(b => b.tipo === 'texto'   && b.pregunta)
+      const bloquesEnlace  = bloques.filter(b => b.tipo === 'enlace'  && b.pregunta)
+      const bloquesArchivo = bloques.filter(b => b.tipo === 'archivo' && b.pregunta)
+
+      if (bloquesTexto.length > 0) {
+        ctx += `\n\nRESPUESTAS:`
+        bloquesTexto.forEach(b => {
+          ctx += `\nCuando pregunten por "${b.pregunta}" responde: ${b.respuesta}`
+        })
+      }
+
+      if (bloquesEnlace.length > 0) {
+        ctx += `\n\nENLACES:`
+        bloquesEnlace.forEach(b => {
+          ctx += `\nCuando pregunten por "${b.pregunta}" responde con: ${b.respuesta} ${b.enlace}`
+        })
+      }
+
+      if (bloquesArchivo.length > 0) {
+        ctx += `\n\nARCHIVOS:`
+        bloquesArchivo.forEach(b => {
+          ctx += `\nCuando pregunten por "${b.pregunta}" responde EXACTAMENTE: ${b.respuesta} ##ARCHIVO##${b.archivoUrl}##`
+        })
+      }
+
+      if (datos.length > 0) {
+        ctx += `\n\nCUANDO ALGUIEN QUIERA HACER UNA CITA O PEDIDO recoge estos datos: ${datos.join(', ')}.`
+      }
+
+      if (msgConf) {
+        ctx += `\nCuando tengas todos los datos dile al cliente: "${msgConf}"`
+      }
+
+      ctx += `\n\nSi no sabes algo sugiere llamar al ${telefono || 'nuestro teléfono'}.`
+      ctx += `\nNunca inventes información que no esté en este contexto.`
+
+      return ctx
+    }
+
+    function actualizarPreview() {
+      document.getElementById('previewContexto').textContent = generarContexto()
+      guardarEnLocal()
+    }
+
+    async function guardar() {
+      if (!botSeleccionado) return
+      const contexto = generarContexto()
+      const datos = {
+        nombre:            document.getElementById('negocioNombre').value || botSeleccionado.nombre,
+        numeroWhatsapp:    botSeleccionado.numeroWhatsapp,
+        mensajeBienvenida: botSeleccionado.mensajeBienvenida,
+        contextoIA:        contexto
+      }
+      const r = await apiFetch(`/api/bots/${botSeleccionado.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(datos)
+      })
+      if (r && r.ok) {
+        mostrarMensaje('✅ Configuración guardada correctamente', 'exito')
+        const idx = bots.findIndex(b => b.id === botSeleccionado.id)
+        bots[idx] = { ...bots[idx], contextoIA: contexto }
+        botSeleccionado = bots[idx]
+      } else {
+        mostrarMensaje('❌ Error al guardar', 'error')
+      }
+    }
+
+    function mostrarMensaje(texto, tipo) {
+      const div = document.getElementById('mensajeGuardar')
+      div.textContent = texto
+      div.className = 'mensaje ' + tipo
+      setTimeout(() => div.className = 'mensaje', 3000)
+    }
+
+    renderizarBloques()
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>BotPanel — Métricas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #111827; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; padding: 24px 12px; }
+    .logo { font-size: 22px; font-weight: bold; padding: 0 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 16px; }
+    .logo span { color: #25d366; }
+    .nav-item { display: block; padding: 10px 12px; border-radius: 8px; color: #64748b; text-decoration: none; font-size: 14px; margin-bottom: 4px; }
+    .nav-item:hover { background: #1a2235; color: #e2e8f0; }
+    .nav-item.activo { background: rgba(37,211,102,0.1); color: #25d366; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; }
+    .usuario-info { font-size: 13px; padding: 0 8px 12px; }
+    .usuario-nombre { font-weight: bold; margin-bottom: 2px; }
+    .usuario-rol { font-size: 11px; color: #25d366; background: rgba(37,211,102,0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+    .btn-salir { width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+
+    .contenido { margin-left: 220px; flex: 1; padding: 32px; }
+    .titulo-pagina { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+    .subtitulo-pagina { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 24px; }
+    .stat-valor { font-size: 40px; font-weight: bold; color: #25d366; margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: #64748b; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .card { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); font-weight: bold; font-size: 14px; }
+    .card-body { padding: 20px; }
+    .chart-container { position: relative; height: 200px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 20px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge-verde { background: rgba(37,211,102,0.15); color: #25d366; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .vacio { padding: 32px; text-align: center; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="logo">Bot<span>Panel</span></div>
+    <a href="dashboard.html"  class="nav-item">⚡ Dashboard</a>
+    <a href="bots.html"       class="nav-item">🤖 Bots</a>
+    <a href="config-bot.html" class="nav-item">⚙️ Configurar Bot</a>
+     <a href="conversaciones.html" class="nav-item activo">💬 Conversaciones</a>
+    <a href="metricas.html"    class="nav-item">📊 Métricas</a>
+<a href="solicitudes.html" class="nav-item">📋 Solicitudes</a>
+    <div class="sidebar-bottom">
+      <div class="usuario-info">
+        <div class="usuario-nombre" id="nombreUsuario">...</div>
+        <span class="usuario-rol" id="rolUsuario">...</span>
+      </div>
+      <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    <div class="titulo-pagina">📊 Métricas</div>
+    <div class="subtitulo-pagina">Actividad de tu bot de WhatsApp</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-valor" id="totalContactos">-</div>
+        <div class="stat-label">📱 Contactos únicos</div>
+      </div>
+      <div class="stat">
+        <div class="stat-valor" id="totalConversaciones">-</div>
+        <div class="stat-label">💬 Conversaciones totales</div>
+      </div>
+      <div class="stat">
+        <div class="stat-valor" id="horaPico">-</div>
+        <div class="stat-label">⏰ Hora pico</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">📈 Mensajes por día (últimos 7 días)</div>
+        <div class="card-body">
+          <div class="chart-container" id="contenedorDias">
+            <canvas id="chartDias"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🕐 Actividad por hora</div>
+        <div class="card-body">
+          <div class="chart-container" id="contenedorHoras">
+            <canvas id="chartHoras"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📱 Contactos que han escrito</div>
+      <div id="tablaContactos">
+        <div class="vacio">Cargando...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    window.onload = async () => {
+      if (!verificarSesion()) return
+      const u = getUsuario()
+      document.getElementById('nombreUsuario').textContent = u.nombre
+      document.getElementById('rolUsuario').textContent    = u.rol
+      cargarMetricas()
+    }
+
+    async function cargarMetricas() {
+      try {
+        const r = await apiFetch('/api/metricas')
+        const d = await r.json()
+
+        document.getElementById('totalContactos').textContent      = d.totalContactos
+        document.getElementById('totalConversaciones').textContent = d.totalConversaciones
+
+        // Hora pico
+        if (d.mensajesPorHora && d.mensajesPorHora.length > 0) {
+          const horaPico = d.mensajesPorHora.reduce((a, b) => b[1] > a[1] ? b : a)
+          document.getElementById('horaPico').textContent = horaPico[0] + ':00h'
+        } else {
+          document.getElementById('horaPico').textContent = '-'
+        }
+
+        // Gráfica por días
+        if (d.mensajesPorDia && d.mensajesPorDia.length > 0) {
+          new Chart(document.getElementById('chartDias'), {
+            type: 'bar',
+            data: {
+              labels: d.mensajesPorDia.map(x => x[0]),
+              datasets: [{
+                label: 'Mensajes',
+                data: d.mensajesPorDia.map(x => x[1]),
+                backgroundColor: 'rgba(37,211,102,0.5)',
+                borderColor: '#25d366',
+                borderWidth: 1,
+                borderRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#64748b' }, grid: { display: false } }
+              }
+            }
+          })
+        } else {
+          document.getElementById('contenedorDias').innerHTML =
+            '<div class="vacio">Sin datos todavía — envía mensajes al bot</div>'
+        }
+
+        // Gráfica por horas
+        if (d.mensajesPorHora && d.mensajesPorHora.length > 0) {
+          new Chart(document.getElementById('chartHoras'), {
+            type: 'line',
+            data: {
+              labels: d.mensajesPorHora.map(x => x[0] + 'h'),
+              datasets: [{
+                label: 'Mensajes',
+                data: d.mensajesPorHora.map(x => x[1]),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#3b82f6'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#64748b' }, grid: { display: false } }
+              }
+            }
+          })
+        } else {
+          document.getElementById('contenedorHoras').innerHTML =
+            '<div class="vacio">Sin datos todavía</div>'
+        }
+
+        // Tabla de contactos
+        if (d.contactos && d.contactos.length > 0) {
+          let html = `<table>
+            <thead><tr><th>#</th><th>NÚMERO</th><th>ESTADO</th></tr></thead>
+            <tbody>`
+          d.contactos.forEach((c, i) => {
+            html += `<tr>
+              <td>${i + 1}</td>
+              <td>📱 ${c}</td>
+              <td><span class="badge-verde">Contactó</span></td>
+            </tr>`
+          })
+          html += '</tbody></table>'
+          document.getElementById('tablaContactos').innerHTML = html
+        } else {
+          document.getElementById('tablaContactos').innerHTML =
+            '<div class="vacio">Nadie ha escrito todavía. Prueba el bot por WhatsApp 📱</div>'
+        }
+
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  </script>
+
+</body>
+</html>
