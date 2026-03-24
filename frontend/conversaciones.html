@@ -255,24 +255,33 @@
       if (estaAbajo) contenedor.scrollTop = contenedor.scrollHeight
     }
 
-    // ── Polling — refresca mensajes y lista cada 4 segundos ───────
-    let pollingInterval = null
+    // ── Polling mensajes cada 3s — independiente de la lista ──────
+    let pollingMensajes = null
+    let pollingLista    = null
 
     function iniciarPolling() {
       detenerPolling()
-      pollingInterval = setInterval(async () => {
-        await cargarConversaciones()
-        if (convSeleccionada) {
+
+      // Refresca mensajes del chat abierto cada 3 segundos
+      pollingMensajes = setInterval(async () => {
+        if (!convSeleccionada) return
+        try {
           const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/mensajes`)
-          if (!r) return
+          if (!r || !r.ok) return
           const mensajes = await r.json()
           renderizarMensajes(mensajes)
-        }
-      }, 4000)
+        } catch (e) { /* silencioso */ }
+      }, 3000)
+
+      // Refresca la lista de conversaciones cada 10 segundos
+      pollingLista = setInterval(async () => {
+        try { await cargarConversaciones() } catch (e) { /* silencioso */ }
+      }, 10000)
     }
 
     function detenerPolling() {
-      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null }
+      if (pollingMensajes) { clearInterval(pollingMensajes); pollingMensajes = null }
+      if (pollingLista)    { clearInterval(pollingLista);    pollingLista    = null }
     }
 
     async function cerrar(id) {
