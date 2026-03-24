@@ -174,7 +174,6 @@
 
     async function seleccionarConv(id) {
       convSeleccionada = conversaciones.find(c => c.id === id)
-      ultimoMensajeId = null
       renderizarLista()
       await cargarMensajes(id)
     }
@@ -203,23 +202,7 @@
           </div>
         </div>
 
-        <div class="chat-mensajes" id="chatMensajes">
-          ${mensajes.length === 0
-            ? '<div class="vacio">No hay mensajes en esta conversación</div>'
-            : mensajes.map(m => {
-                const esCliente = m.origen === 'CLIENTE'
-                const esAgente  = m.origen === 'AGENTE'
-                const clase = esCliente ? 'msg-cliente' : esAgente ? 'msg-agente' : 'msg-bot'
-                const label = esCliente ? '👤 Cliente' : esAgente ? '🧑‍💼 Agente' : '🤖 Bot'
-                const hora  = m.enviadoEn ? m.enviadoEn.split('T')[0] + ' ' + m.enviadoEn.split('T')[1]?.substring(0,5) : ''
-                return `
-                  <div class="msg ${clase}">
-                    <div>${m.contenido}</div>
-                    <div class="msg-hora">${label} · ${hora}</div>
-                  </div>`
-              }).join('')
-          }
-        </div>
+        <div class="chat-mensajes" id="chatMensajes"></div>
 
         ${!esCerrada ? `
           <div class="chat-input">
@@ -234,11 +217,7 @@
         `}
       `
 
-      // Scroll al último mensaje
-      setTimeout(() => {
-        const msgs = document.getElementById('chatMensajes')
-        if (msgs) msgs.scrollTop = msgs.scrollHeight
-      }, 50)
+      renderizarMensajes(mensajes)
     }
 
     async function enviarManual() {
@@ -258,25 +237,36 @@
       }
     }
 
+    // ── Actualiza solo la lista de mensajes sin tocar el textarea ─
+    function renderizarMensajes(mensajes) {
+      const contenedor = document.getElementById('chatMensajes')
+      if (!contenedor) return
+      const estaAbajo = contenedor.scrollHeight - contenedor.scrollTop - contenedor.clientHeight < 60
+      contenedor.innerHTML = mensajes.length === 0
+        ? '<div class="vacio">No hay mensajes en esta conversación</div>'
+        : mensajes.map(m => {
+            const esCliente = m.origen === 'CLIENTE'
+            const esAgente  = m.origen === 'AGENTE'
+            const clase = esCliente ? 'msg-cliente' : esAgente ? 'msg-agente' : 'msg-bot'
+            const label = esCliente ? '👤 Cliente' : esAgente ? '🧑‍💼 Agente' : '🤖 Bot'
+            const hora  = m.enviadoEn ? m.enviadoEn.split('T')[0] + ' ' + m.enviadoEn.split('T')[1]?.substring(0,5) : ''
+            return `<div class="msg ${clase}"><div>${m.contenido}</div><div class="msg-hora">${label} · ${hora}</div></div>`
+          }).join('')
+      if (estaAbajo) contenedor.scrollTop = contenedor.scrollHeight
+    }
+
     // ── Polling — refresca mensajes y lista cada 4 segundos ───────
     let pollingInterval = null
-    let ultimoMensajeId = null
 
     function iniciarPolling() {
       detenerPolling()
       pollingInterval = setInterval(async () => {
-        // Refresca lista de conversaciones (para ver nuevas)
         await cargarConversaciones()
-        // Refresca mensajes de la conversación abierta
         if (convSeleccionada) {
           const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/mensajes`)
           if (!r) return
           const mensajes = await r.json()
-          const ultimoId = mensajes[mensajes.length - 1]?.id
-          if (ultimoId !== ultimoMensajeId) {
-            ultimoMensajeId = ultimoId
-            renderizarChat(mensajes)
-          }
+          renderizarMensajes(mensajes)
         }
       }, 4000)
     }
