@@ -14,8 +14,10 @@ import com.botpanel.service.OpenAIService;
 import com.botpanel.service.TwilioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.twilio.twiml.MessagingResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +32,10 @@ public class WebhookController {
     private final MensajeRepository mensajeRepository;
     private final SolicitudRepository solicitudRepository;
     private final TwilioService twilioService;
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Value("${n8n.webhook.url:}")
+    private String n8nWebhookUrl;
 
     public WebhookController(OpenAIService openAIService,
                              BotRepository botRepository,
@@ -212,6 +218,22 @@ public class WebhookController {
 
             solicitudRepository.save(s);
             System.out.println("✅ Solicitud guardada: " + s.getNombre() + " — " + s.getTipo());
+
+            // Notifica a n8n si está configurado
+            if (n8nWebhookUrl != null && !n8nWebhookUrl.isBlank()) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("nombre", s.getNombre());
+                payload.put("telefono", s.getTelefono());
+                payload.put("tipo", s.getTipo());
+                payload.put("notas", s.getNotas());
+                payload.put("datos", datos.get("datos"));
+                payload.put("empresa", bot.getEmpresa().getNombre());
+                try {
+                    restTemplate.postForObject(n8nWebhookUrl, payload, String.class);
+                } catch (Exception e) {
+                    System.err.println("⚠️ n8n webhook error: " + e.getMessage());
+                }
+            }
 
         } catch (Exception e) {
             System.err.println("❌ Error guardando solicitud: " + e.getMessage());

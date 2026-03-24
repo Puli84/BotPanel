@@ -51,7 +51,8 @@
 
     .msg { max-width: 70%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
     .msg-cliente { background: #1a2235; border: 1px solid rgba(255,255,255,0.07); align-self: flex-start; border-bottom-left-radius: 4px; }
-    .msg-bot { background: rgba(37,211,102,0.1); border: 1px solid rgba(37,211,102,0.2); align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-bot    { background: rgba(37,211,102,0.1);  border: 1px solid rgba(37,211,102,0.2);  align-self: flex-end;   border-bottom-right-radius: 4px; }
+    .msg-agente { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);  align-self: flex-end;   border-bottom-right-radius: 4px; }
     .msg-hora { font-size: 10px; color: #475569; margin-top: 4px; }
 
     .chat-input { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 10px; }
@@ -122,16 +123,14 @@
     let conversaciones = []
     let convSeleccionada = null
     let filtroActual = 'ACTIVA'
-    let intervaloRefresco = null
 
     window.onload = async () => {
       if (!verificarSesion()) return
       const u = getUsuario()
       document.getElementById('nombreUsuario').textContent = u.nombre
       document.getElementById('rolUsuario').textContent    = u.rol
-      cargarConversaciones()
-      // Refresca cada 15 segundos
-      intervaloRefresco = setInterval(cargarConversaciones, 15000)
+      await cargarConversaciones()
+      iniciarPolling()
     }
 
     async function cargarConversaciones() {
@@ -203,17 +202,7 @@
           </div>
         </div>
 
-        <div class="chat-mensajes" id="chatMensajes">
-          ${mensajes.length === 0
-            ? '<div class="vacio">No hay mensajes en esta conversación</div>'
-            : mensajes.map(m => `
-                <div class="msg ${m.origen === 'CLIENTE' ? 'msg-cliente' : 'msg-bot'}">
-                  <div>${m.contenido}</div>
-                  <div class="msg-hora">${m.origen === 'CLIENTE' ? '👤 Cliente' : '🤖 Bot'} · ${m.enviadoEn ? m.enviadoEn.split('T')[0] + ' ' + m.enviadoEn.split('T')[1]?.substring(0,5) : ''}</div>
-                </div>
-              `).join('')
-          }
-        </div>
+        <div class="chat-mensajes" id="chatMensajes"></div>
 
         ${!esCerrada ? `
           <div class="chat-input">
@@ -228,11 +217,7 @@
         `}
       `
 
-      // Scroll al último mensaje
-      setTimeout(() => {
-        const msgs = document.getElementById('chatMensajes')
-        if (msgs) msgs.scrollTop = msgs.scrollHeight
-      }, 50)
+      renderizarMensajes(mensajes)
     }
 
     async function enviarManual() {
@@ -250,6 +235,53 @@
       if (r && r.ok) {
         await cargarMensajes(convSeleccionada.id)
       }
+    }
+
+    // ── Actualiza solo la lista de mensajes sin tocar el textarea ─
+    function renderizarMensajes(mensajes) {
+      const contenedor = document.getElementById('chatMensajes')
+      if (!contenedor) return
+      const estaAbajo = contenedor.scrollHeight - contenedor.scrollTop - contenedor.clientHeight < 60
+      contenedor.innerHTML = mensajes.length === 0
+        ? '<div class="vacio">No hay mensajes en esta conversación</div>'
+        : mensajes.map(m => {
+            const esCliente = m.origen === 'CLIENTE'
+            const esAgente  = m.origen === 'AGENTE'
+            const clase = esCliente ? 'msg-cliente' : esAgente ? 'msg-agente' : 'msg-bot'
+            const label = esCliente ? '👤 Cliente' : esAgente ? '🧑‍💼 Agente' : '🤖 Bot'
+            const hora  = m.enviadoEn ? m.enviadoEn.split('T')[0] + ' ' + m.enviadoEn.split('T')[1]?.substring(0,5) : ''
+            return `<div class="msg ${clase}"><div>${m.contenido}</div><div class="msg-hora">${label} · ${hora}</div></div>`
+          }).join('')
+      if (estaAbajo) contenedor.scrollTop = contenedor.scrollHeight
+    }
+
+    // ── Polling mensajes cada 3s — independiente de la lista ──────
+    let pollingMensajes = null
+    let pollingLista    = null
+
+    function iniciarPolling() {
+      detenerPolling()
+
+      // Refresca mensajes del chat abierto cada 3 segundos
+      pollingMensajes = setInterval(async () => {
+        if (!convSeleccionada) return
+        try {
+          const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/mensajes`)
+          if (!r || !r.ok) return
+          const mensajes = await r.json()
+          renderizarMensajes(mensajes)
+        } catch (e) { /* silencioso */ }
+      }, 3000)
+
+      // Refresca la lista de conversaciones cada 10 segundos
+      pollingLista = setInterval(async () => {
+        try { await cargarConversaciones() } catch (e) { /* silencioso */ }
+      }, 10000)
+    }
+
+    function detenerPolling() {
+      if (pollingMensajes) { clearInterval(pollingMensajes); pollingMensajes = null }
+      if (pollingLista)    { clearInterval(pollingLista);    pollingLista    = null }
     }
 
     async function cerrar(id) {
