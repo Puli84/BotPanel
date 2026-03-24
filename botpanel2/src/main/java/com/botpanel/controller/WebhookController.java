@@ -64,6 +64,12 @@ public class WebhookController {
         // Si el bot está inactivo, guardamos el mensaje pero no respondemos
         if (bot == null) {
             System.out.println("Bot inactivo o no encontrado — mensaje recibido pero sin respuesta");
+            Bot botInactivo = botRepository.findAll().stream()
+                .filter(b -> to != null && to.replace("whatsapp:", "").equals(b.getNumeroWhatsapp()))
+                .findFirst().orElse(null);
+            if (botInactivo != null) {
+                guardarSoloMensajeCliente(contacto, body, botInactivo);
+            }
             return new MessagingResponse.Builder().build().toXml();
         }
 
@@ -210,6 +216,30 @@ public class WebhookController {
         } catch (Exception e) {
             System.err.println("❌ Error guardando solicitud: " + e.getMessage());
         }
+    }
+
+    // ── Guarda solo el mensaje del cliente (bot inactivo) ─────────
+    private void guardarSoloMensajeCliente(String contacto, String textoCliente, Bot bot) {
+        Optional<Conversacion> convExistente = conversacionRepository
+                .findByBotEmpresaId(bot.getEmpresa().getId())
+                .stream()
+                .filter(c -> contacto.equals(c.getContacto())
+                        && c.getEstado() == EstadoConversacion.ACTIVA)
+                .findFirst();
+
+        Conversacion conv = convExistente.orElseGet(() -> {
+            Conversacion nueva = new Conversacion();
+            nueva.setContacto(contacto);
+            nueva.setBot(bot);
+            nueva.setEstado(EstadoConversacion.ACTIVA);
+            return conversacionRepository.save(nueva);
+        });
+
+        Mensaje msg = new Mensaje();
+        msg.setContenido(textoCliente);
+        msg.setOrigen(OrigenMensaje.CLIENTE);
+        msg.setConversacion(conv);
+        mensajeRepository.save(msg);
     }
 
     // ── Guarda mensajes en BD ──────────────────────────────────────
