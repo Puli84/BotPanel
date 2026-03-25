@@ -104,8 +104,12 @@ public class WebhookController {
         if (respuestaLimpia != null && respuestaLimpia.contains("##ARCHIVO##")) {
             String[] partes = respuestaLimpia.split("##ARCHIVO##");
             respuestaLimpia = partes[0].trim();
-            if (partes.length > 1)
+            if (partes.length > 1) {
                 archivoUrl = partes[1].split("##")[0].trim();
+                // Corrige URLs duplicadas (ej: https://host.comhttps://host.com/...)
+                int segundoHttp = archivoUrl.indexOf("https://", 1);
+                if (segundoHttp > 0) archivoUrl = archivoUrl.substring(segundoHttp);
+            }
         }
 
         // Guarda solicitud si la hay
