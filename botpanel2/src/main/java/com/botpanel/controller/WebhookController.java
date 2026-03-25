@@ -119,10 +119,8 @@ public class WebhookController {
         // Envía con archivo, imagen o solo texto
         if (archivoUrl != null) {
             System.out.println("Enviando archivo: " + archivoUrl);
-            // Añade texto si viene vacío y adjunta la URL para que WhatsApp la muestre como enlace
             String textoArchivo = (respuestaLimpia == null || respuestaLimpia.isBlank())
-                ? "Aquí tienes el archivo:\n" + archivoUrl
-                : respuestaLimpia + "\n" + archivoUrl;
+                ? "Aquí tienes el archivo:" : respuestaLimpia;
             twilioService.enviarConImagen(contacto, textoArchivo, archivoUrl);
         } else if (imagenUrl != null) {
             System.out.println("Enviando imagen: " + imagenUrl);
