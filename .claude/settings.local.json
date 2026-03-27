@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/danip/Desktop/DAW/2DAW/CI4/Botpanel -type f \\\\\\(-name *.vue -o -name *.jsx -o -name *.tsx \\\\\\))"
+    ]
+  }
+}

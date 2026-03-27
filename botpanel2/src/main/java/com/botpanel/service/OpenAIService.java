@@ -79,7 +79,7 @@ public class OpenAIService {
         Donde:
         - tipo: el tipo de solicitud ("reserva", "cita", "pedido", etc.)
         - nombre: nombre del cliente
-        - telefono: si lo ha dado, sino ""
+        - telefono: si lo ha dado, sino de donde venga el mensaje
         - notas: observaciones importantes
         - datos: objeto JSON con cualquier dato extra relevante
 
