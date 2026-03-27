@@ -76,6 +76,17 @@
     .sin-seleccion-icono { font-size: 48px; }
 
     .vacio { padding: 32px; text-align: center; color: #64748b; font-size: 13px; }
+
+    /* Modal nueva conversación */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; width: 380px; display: flex; flex-direction: column; gap: 16px; }
+    .modal h3 { font-size: 16px; font-weight: bold; }
+    .modal label { font-size: 12px; color: #64748b; margin-bottom: 4px; display: block; }
+    .modal input, .modal textarea, .modal select { width: 100%; background: #1a2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; font-family: Arial; }
+    .modal input:focus, .modal textarea:focus, .modal select:focus { border-color: #25d366; }
+    .modal textarea { resize: none; height: 80px; line-height: 1.4; }
+    .modal select option { background: #1a2235; }
+    .modal-acciones { display: flex; gap: 8px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -102,7 +113,10 @@
     <!-- Lista de conversaciones -->
     <div class="lista-conv">
       <div class="lista-header">
-        <div class="lista-titulo">💬 Conversaciones</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="lista-titulo" style="margin-bottom:0">💬 Conversaciones</div>
+          <button type="button" class="btn btn-verde" style="font-size:12px;padding:6px 12px" onclick="abrirModalNueva()">+ Nueva</button>
+        </div>
         <div class="filtros">
           <button type="button" class="filtro-btn activo" onclick="filtrar('ACTIVA', this)">Activas</button>
           <button type="button" class="filtro-btn" onclick="filtrar('CERRADA', this)">Cerradas</button>
@@ -124,11 +138,35 @@
 
   </div>
 
+  <!-- Modal nueva conversación -->
+  <div id="modalNueva" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModal()">
+    <div class="modal">
+      <h3>📱 Nueva conversación</h3>
+      <div>
+        <label>Teléfono (con prefijo internacional, ej: +34612345678)</label>
+        <input type="tel" id="modalTelefono" placeholder="+34612345678">
+      </div>
+      <div>
+        <label>Bot</label>
+        <select id="modalBot"></select>
+      </div>
+      <div>
+        <label>Mensaje inicial</label>
+        <textarea id="modalMensaje" placeholder="Escribe el primer mensaje..."></textarea>
+      </div>
+      <div class="modal-acciones">
+        <button type="button" class="btn btn-gris" onclick="cerrarModal()">Cancelar</button>
+        <button type="button" class="btn btn-verde" onclick="crearConversacion()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="auth.js"></script>
   <script>
     let conversaciones = []
     let convSeleccionada = null
     let filtroActual = 'ACTIVA'
+    let botsDisponibles = []
 
     window.onload = async () => {
       if (!verificarSesion()) return
@@ -136,7 +174,49 @@
       document.getElementById('nombreUsuario').textContent = u.nombre
       document.getElementById('rolUsuario').textContent    = u.rol
       await cargarConversaciones()
+      await cargarBots()
       iniciarPolling()
+    }
+
+    async function cargarBots() {
+      const r = await apiFetch('/api/bots')
+      if (!r || !r.ok) return
+      botsDisponibles = await r.json()
+      const sel = document.getElementById('modalBot')
+      sel.innerHTML = botsDisponibles.map(b => `<option value="${b.id}">${b.nombre}</option>`).join('')
+    }
+
+    function abrirModalNueva() {
+      document.getElementById('modalTelefono').value = ''
+      document.getElementById('modalMensaje').value = ''
+      document.getElementById('modalNueva').style.display = 'flex'
+      document.getElementById('modalTelefono').focus()
+    }
+
+    function cerrarModal() {
+      document.getElementById('modalNueva').style.display = 'none'
+    }
+
+    async function crearConversacion() {
+      const telefono = document.getElementById('modalTelefono').value.trim()
+      const mensaje  = document.getElementById('modalMensaje').value.trim()
+      const botId    = document.getElementById('modalBot').value
+
+      if (!telefono || !mensaje) return alert('Teléfono y mensaje son obligatorios')
+
+      const r = await apiFetch('/api/conversaciones/nueva', {
+        method: 'POST',
+        body: JSON.stringify({ telefono, mensaje, botId })
+      })
+
+      if (r && r.ok) {
+        cerrarModal()
+        await cargarConversaciones()
+        const conv = await r.json()
+        seleccionarConv(conv.id)
+      } else {
+        alert('Error al crear la conversación')
+      }
     }
 
     async function cargarConversaciones() {

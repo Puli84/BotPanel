@@ -7,7 +7,9 @@ import com.botpanel.entity.Usuario;
 import com.botpanel.enums.EstadoConversacion;
 import com.botpanel.enums.OrigenMensaje;
 import com.botpanel.enums.Rol;
+import com.botpanel.entity.Bot;
 import com.botpanel.repository.ArchivoRepository;
+import com.botpanel.repository.BotRepository;
 import com.botpanel.repository.ConversacionRepository;
 import com.botpanel.repository.MensajeRepository;
 import com.botpanel.service.TwilioService;
@@ -33,15 +35,18 @@ public class ConversacionController {
     private final MensajeRepository mensajeRepository;
     private final TwilioService twilioService;
     private final ArchivoRepository archivoRepository;
+    private final BotRepository botRepository;
 
     public ConversacionController(ConversacionRepository conversacionRepository,
                                    MensajeRepository mensajeRepository,
                                    TwilioService twilioService,
-                                   ArchivoRepository archivoRepository) {
+                                   ArchivoRepository archivoRepository,
+                                   BotRepository botRepository) {
         this.conversacionRepository = conversacionRepository;
         this.mensajeRepository = mensajeRepository;
         this.twilioService = twilioService;
         this.archivoRepository = archivoRepository;
+        this.botRepository = botRepository;
     }
 
     // Lista conversaciones de la empresa
@@ -84,6 +89,65 @@ public class ConversacionController {
         mensajeRepository.save(msg);
 
         return ResponseEntity.ok(msg);
+    }
+
+    // Crear conversación nueva con un número cualquiera
+    @PostMapping("/nueva")
+    public ResponseEntity<?> nuevaConversacion(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Usuario usuario) {
+
+        String telefono = body.get("telefono");
+        String mensaje  = body.get("mensaje");
+        String botIdStr = body.get("botId");
+
+        if (telefono == null || telefono.isBlank() || mensaje == null || mensaje.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "Teléfono y mensaje son obligatorios"));
+
+        // Normaliza el número (quita espacios y asegura formato +)
+        telefono = telefono.trim().replaceAll("\\s+", "");
+        if (!telefono.startsWith("+")) telefono = "+" + telefono;
+
+        Bot bot;
+        if (botIdStr != null && !botIdStr.isBlank()) {
+            bot = botRepository.findById(Long.parseLong(botIdStr))
+                    .orElseThrow(() -> new RuntimeException("Bot no encontrado"));
+        } else {
+            List<Bot> bots = botRepository.findByEmpresaIdAndActivoTrue(usuario.getEmpresa().getId());
+            if (bots.isEmpty())
+                return ResponseEntity.badRequest().body(Map.of("error", "No hay bots activos en tu empresa"));
+            bot = bots.get(0);
+        }
+
+        final String telefonoFinal = telefono;
+        final Bot botFinal = bot;
+
+        // Reutiliza conversación activa existente o crea una nueva
+        Conversacion conv = conversacionRepository
+                .findByBotEmpresaId(usuario.getEmpresa().getId())
+                .stream()
+                .filter(c -> c.getContacto().equals(telefonoFinal)
+                          && c.getBot().getId().equals(botFinal.getId())
+                          && c.getEstado() == com.botpanel.enums.EstadoConversacion.ACTIVA)
+                .findFirst()
+                .orElseGet(() -> {
+                    Conversacion nueva = new Conversacion();
+                    nueva.setContacto(telefonoFinal);
+                    nueva.setBot(botFinal);
+                    return conversacionRepository.save(nueva);
+                });
+
+        // Envía por WhatsApp
+        twilioService.enviarMensaje(conv.getContacto(), mensaje);
+
+        // Guarda el mensaje en BD
+        Mensaje msg = new Mensaje();
+        msg.setContenido(mensaje);
+        msg.setOrigen(OrigenMensaje.AGENTE);
+        msg.setConversacion(conv);
+        mensajeRepository.save(msg);
+
+        return ResponseEntity.ok(conv);
     }
 
     // Enviar archivo (foto/PDF) desde el panel del agente
