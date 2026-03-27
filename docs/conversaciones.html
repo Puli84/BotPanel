@@ -55,9 +55,15 @@
     .msg-agente { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);  align-self: flex-end;   border-bottom-right-radius: 4px; }
     .msg-hora { font-size: 10px; color: #475569; margin-top: 4px; }
 
-    .chat-input { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 10px; }
+    .chat-input { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; gap: 8px; }
+    .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
     .chat-input textarea { flex: 1; background: #1a2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e2e8f0; font-size: 14px; outline: none; font-family: Arial; resize: none; height: 44px; line-height: 1.4; }
     .chat-input textarea:focus { border-color: #25d366; }
+    .btn-clip { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #64748b; border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 16px; line-height: 1; }
+    .btn-clip:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+    .archivo-preview { background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.2); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #25d366; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .archivo-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .archivo-quitar { background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
 
     .btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
     .btn-verde { background: #25d366; color: #000; }
@@ -206,9 +212,17 @@
 
         ${!esCerrada ? `
           <div class="chat-input">
-            <textarea id="inputMensaje" placeholder="Escribe un mensaje como agente..." 
-              onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); enviarManual(); }"></textarea>
-            <button type="button" class="btn btn-verde" onclick="enviarManual()">Enviar</button>
+            <div id="archivoPreview" style="display:none" class="archivo-preview">
+              <span id="archivoNombre"></span>
+              <button type="button" class="archivo-quitar" onclick="quitarArchivo()">✕</button>
+            </div>
+            <div class="chat-input-row">
+              <input type="file" id="inputArchivo" accept="image/*,.pdf" style="display:none" onchange="archivoSeleccionado(this)">
+              <button type="button" class="btn-clip" onclick="document.getElementById('inputArchivo').click()" title="Adjuntar archivo">📎</button>
+              <textarea id="inputMensaje" placeholder="Escribe un mensaje como agente..."
+                onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); enviarManual(); }"></textarea>
+              <button type="button" class="btn btn-verde" onclick="enviarManual()">Enviar</button>
+            </div>
           </div>
         ` : `
           <div style="padding:12px 20px;text-align:center;color:#64748b;font-size:13px;border-top:1px solid rgba(255,255,255,0.07)">
@@ -220,20 +234,55 @@
       renderizarMensajes(mensajes)
     }
 
+    let archivoAdjunto = null
+
+    function archivoSeleccionado(input) {
+      const file = input.files[0]
+      if (!file) return
+      archivoAdjunto = file
+      document.getElementById('archivoNombre').textContent = '📎 ' + file.name
+      document.getElementById('archivoPreview').style.display = 'flex'
+    }
+
+    function quitarArchivo() {
+      archivoAdjunto = null
+      document.getElementById('archivoPreview').style.display = 'none'
+      document.getElementById('archivoNombre').textContent = ''
+      const input = document.getElementById('inputArchivo')
+      if (input) input.value = ''
+    }
+
     async function enviarManual() {
+      if (!convSeleccionada) return
       const input = document.getElementById('inputMensaje')
-      const texto = input?.value?.trim()
-      if (!texto || !convSeleccionada) return
+      const texto = input?.value?.trim() || ''
 
-      input.value = ''
+      if (!texto && !archivoAdjunto) return
 
-      const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/responder`, {
-        method: 'POST',
-        body: JSON.stringify({ texto })
-      })
+      if (archivoAdjunto) {
+        // Envío con archivo
+        const formData = new FormData()
+        formData.append('archivo', archivoAdjunto)
+        if (texto) formData.append('texto', texto)
 
-      if (r && r.ok) {
-        await cargarMensajes(convSeleccionada.id)
+        input.value = ''
+        quitarArchivo()
+
+        const token = localStorage.getItem('token')
+        const r = await fetch(`https://botpanel-production.up.railway.app/api/conversaciones/${convSeleccionada.id}/responder-archivo`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        })
+        if (r && r.ok) await cargarMensajes(convSeleccionada.id)
+      } else {
+        // Envío solo texto
+        input.value = ''
+        const r = await apiFetch(`/api/conversaciones/${convSeleccionada.id}/responder`, {
+          method: 'POST',
+          body: JSON.stringify({ texto })
+        })
+        if (r && r.ok) await cargarMensajes(convSeleccionada.id)
       }
     }
 
