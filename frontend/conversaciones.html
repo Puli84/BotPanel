@@ -349,7 +349,7 @@
         quitarArchivo()
 
         const token = localStorage.getItem('token')
-        const r = await fetch(`https://botpanel-production.up.railway.app/api/conversaciones/${convSeleccionada.id}/responder-archivo`, {
+        const r = await fetch(`${API}/api/conversaciones/${convSeleccionada.id}/responder-archivo`, {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + token },
           body: formData

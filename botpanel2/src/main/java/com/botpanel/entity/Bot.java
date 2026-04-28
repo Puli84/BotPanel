@@ -1,5 +1,6 @@
 package com.botpanel.entity;
 
+import com.botpanel.entity.Solicitud;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
@@ -28,8 +29,12 @@ public class Bot {
     private Empresa empresa;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "bot", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "bot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Conversacion> conversaciones;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "bot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Solicitud> solicitudes;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -54,5 +59,8 @@ public class Bot {
 
     public List<Conversacion> getConversaciones() { return conversaciones; }
     public void setConversaciones(List<Conversacion> conversaciones) { this.conversaciones = conversaciones; }
+
+    public List<Solicitud> getSolicitudes() { return solicitudes; }
+    public void setSolicitudes(List<Solicitud> solicitudes) { this.solicitudes = solicitudes; }
     public void setContextoIA(String contextoIA) { this.contextoIA = contextoIA; }
 }

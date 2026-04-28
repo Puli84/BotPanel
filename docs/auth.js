@@ -2,7 +2,7 @@
 // auth.js — funciones que comparten TODAS las páginas
 // ─────────────────────────────────────────────────────────
 
-const API = "https://botpanel-production.up.railway.app";
+const API = "http://localhost:8080";
 
 // Comprueba si hay sesión activa. Si no, manda al login.
 function verificarSesion() {
