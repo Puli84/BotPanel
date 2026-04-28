@@ -6,6 +6,7 @@ botpanel2/.settings/
 
 # Secretos locales
 botpanel2/src/main/resources/application-local.properties
+botpanel2/src/main/resources/application.properties
 
 # Uploads locales
 botpanel2/uploads/
