@@ -2,125 +2,78 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BotPanel — Login</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: #0a0e1a;
-      color: #e2e8f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .card {
-      background: #111827;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .logo {
-      text-align: center;
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .logo span { color: #25d366; }
-
-    .subtitulo {
-      text-align: center;
-      color: #64748b;
-      font-size: 14px;
-      margin-bottom: 32px;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      color: #64748b;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      margin-top: 16px;
-    }
-
-    input {
-      width: 100%;
-      background: #1a2235;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 12px 14px;
-      color: #e2e8f0;
-      font-size: 14px;
-      outline: none;
-    }
-
-    input:focus { border-color: #25d366; }
-
-    button {
-      width: 100%;
-      background: #25d366;
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 24px;
-    }
-
-    button:hover { background: #1db954; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .mensaje {
-      margin-top: 16px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      display: none;
-    }
-
-    .mensaje.error {
-      background: rgba(239,68,68,0.15);
-      border: 1px solid rgba(239,68,68,0.3);
-      color: #ef4444;
-      display: block;
-    }
-
-    .mensaje.exito {
-      background: rgba(37,211,102,0.15);
-      border: 1px solid rgba(37,211,102,0.3);
-      color: #25d366;
-      display: block;
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
 </head>
 <body>
 
-  <div class="card">
-    <div class="logo">Bot<span>Panel</span></div>
-    <div class="subtitulo">Panel de gestión de bots de WhatsApp</div>
+  <!-- GLOW VERDE FONDO -->
+  <div class="glow-green"></div>
 
-    <label>Email</label>
-    <input type="email" id="email" placeholder="admin@botpanel.com" />
-
-    <label>Contraseña</label>
-    <input type="password" id="password" placeholder="••••••••" />
-
-    <button id="btnLogin" onclick="login()">Entrar</button>
-
-    <div class="mensaje" id="mensaje"></div>
+  <!-- SPLASH SCREEN -->
+  <div id="splash">
+    <video id="videoSplash" autoplay muted playsinline>
+      <source src="logovd.mp4" type="video/mp4">
+    </video>
   </div>
 
-  <script src="auth.js"></script>
+  <!-- FORMULARIO LOGIN -->
+  <div id="loginWrap" class="hidden">
+    <div class="card">
+
+      <div class="badge">
+        <div class="badge-dot"></div>
+        BOTPANEL v2.0
+      </div>
+
+      <div class="logo-wrap">
+        <img src="logo.png" alt="BotPanel logo"/>
+        <div class="logo-texto"><span class="bot">Bot</span><span class="panel">Panel</span></div>
+      </div>
+      <div class="subtitulo">Panel de gestión de bots de WhatsApp</div>
+
+      <label>Email</label>
+      <input type="email" id="email" placeholder="admin@botpanel.com" />
+
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" />
+
+      <button id="btnLogin" onclick="login()">Entrar</button>
+
+      <div class="mensaje" id="mensaje"></div>
+
+      <hr class="divider"/>
+      <div class="footer">BotPanel &copy; 2026 — WhatsApp Automation</div>
+
+    </div>
+  </div>
+
   <script>
+    const API = "http://localhost:8080";
+
+    const video     = document.getElementById("videoSplash");
+    const splash    = document.getElementById("splash");
+    const loginWrap = document.getElementById("loginWrap");
+
+    // Cuando termina el vídeo muestra el login
+    video.addEventListener("ended", mostrarLogin);
+
+    // Fallback: si el vídeo no carga en 6s mostramos el login igualmente
+    setTimeout(() => {
+      if (splash.style.display !== "none") mostrarLogin();
+    }, 6000);
+
+    function mostrarLogin() {
+      splash.classList.add("fadeOut");
+      setTimeout(() => {
+        splash.style.display = "none";
+        loginWrap.classList.remove("hidden");
+        loginWrap.classList.add("fadeIn");
+      }, 600);
+    }
+
     async function login() {
       const email    = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -131,11 +84,10 @@
       }
 
       const btn = document.getElementById("btnLogin");
-      btn.disabled = true;
+      btn.disabled    = true;
       btn.textContent = "Entrando...";
 
       try {
-        // fetch() hace la petición HTTP a nuestra API
         const respuesta = await fetch(`${API}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -145,42 +97,38 @@
         const datos = await respuesta.json();
 
         if (respuesta.ok) {
-          // Guardamos el token en localStorage para usarlo en otras páginas
-          localStorage.setItem("token", datos.token);
-          localStorage.setItem("nombre", datos.nombre);
-          localStorage.setItem("email", datos.email);
-          localStorage.setItem("rol", datos.rol);
+          localStorage.setItem("token",     datos.token);
+          localStorage.setItem("nombre",    datos.nombre);
+          localStorage.setItem("email",     datos.email);
+          localStorage.setItem("rol",       datos.rol);
           localStorage.setItem("empresaId", datos.empresaId);
 
           mostrarMensaje("¡Bienvenido " + datos.nombre + "!", "exito");
-
-          setTimeout(() => {
-            window.location.href = "dashboard.html";
-          }, 1000);
+          setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
 
         } else {
           mostrarMensaje(datos.error || "Email o contraseña incorrectos", "error");
+          btn.disabled    = false;
+          btn.textContent = "Entrar";
         }
 
       } catch (error) {
         mostrarMensaje("No se puede conectar con el servidor. ¿Está arrancado Spring Boot?", "error");
+        btn.disabled    = false;
+        btn.textContent = "Entrar";
       }
-
-      btn.disabled = false;
-      btn.textContent = "Entrar";
     }
 
     function mostrarMensaje(texto, tipo) {
-      const div = document.getElementById("mensaje");
+      const div     = document.getElementById("mensaje");
       div.textContent = texto;
-      div.className = "mensaje " + tipo;
+      div.className   = "mensaje " + tipo;
     }
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Enter") login();
     });
 
-    // Si ya hay sesión iniciada, vamos al dashboard directamente
     window.onload = () => {
       if (localStorage.getItem("token")) {
         window.location.href = "dashboard.html";
