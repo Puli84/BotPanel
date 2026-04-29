@@ -1,0 +1,35 @@
+[33m44a9eb2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m añadido logo video
+[33mb81db9e[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Elimina application.properties del repositorio (contiene secretos)
+[33m6e7d641[m todo en local
+[33ma9a0ca2[m[33m ([m[1;31morigin/Features[m[33m, [m[1;32mFeatures[m[33m)[m Agente puede iniciar conversaciones con cualquier número
+[33m7a9d1ee[m Aplica cambio de envío de archivos a docs/conversaciones.html (GitHub Pages)
+[33me44fd43[m Agente puede enviar archivos (fotos/PDF) en conversaciones
+[33mb954cc1[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m cambios probados en dev frontend
+[33m6b6f714[m prueba cambios en dev para produccion
+[33m286457e[m sin cambios
+[33me4fd18c[m correccion archivo enviado
+[33m2ac567a[m Correción url archivos en producción
+[33m2d114f9[m creando archivos en bbdd
+[33md3ac890[m solucionado archivos en produccion
+[33m590c827[m feat: integración n8n + sync docs con frontend
+[33m04fc537[m fix: CORS — Spring Security bloqueaba preflight OPTIONS
+[33m7631988[m fix: separar polling mensajes (3s) del polling lista (10s)
+[33m5600468[m fix: polling actualiza solo mensajes sin redibujar el panel completo
+[33ma5bdf48[m merge: polling automático en conversaciones desde dev
+[33m8e383ac[m feat: polling automático cada 4s en conversaciones
+[33mcdbbd5e[m merge: modo agente desde dev
+[33m3df38e5[m feat: modo agente — mensajes manuales como AGENTE, guardar mensajes con bot inactivo
+[33m433899a[m añadido carpeta docs con html estático
+[33m83cc696[m Renombre de archivo a index.html
+[33mae91073[m Configuración producción Railway: Dockerfile y application.properties con variables de entorno
+[33mb227064[m preparado para produccion
+[33meeb94cd[m  Ejercicio corregido en desarrollo
+[33m791b63d[m fix variable archivos directorio
+[33md341555[m Fix persistencia config-bot y error URL archivo en Twilio
+[33m75e7d7c[m Ultimo commit v2
+[33m6a6f570[m Solucionado envio de pdf
+[33m61a7a60[m Actualizado conversaciones
+[33mb4eb546[m funcionamiento bot inactivos, pestaña conversaciones funcionando
+[33m9ae51d8[m Funcionando desarrollo
+[33m0c9efc5[m Funcionanando con ngrok y twilio el envio de pdf
+[33mbdcdd87[m primer commit
